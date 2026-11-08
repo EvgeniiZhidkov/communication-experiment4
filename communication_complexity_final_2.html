@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Три эксперимента с LLM · Полудуплексная коммуникационная сложность</title>
+<style>
+
+:root{--ink:#182632;--muted:#52616c;--line:#dce3e6;--accent:#166b63;--wash:#edf6f3;--paper:#fff;--back:#f1f4f5}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--back);color:var(--ink);font:17px/1.58 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+main{max-width:1040px;margin:32px auto;padding:48px 60px;background:var(--paper);border:1px solid var(--line);border-radius:12px}header{border-bottom:2px solid var(--accent);padding-bottom:22px;margin-bottom:28px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:750}h1{font-size:34px;line-height:1.17;letter-spacing:-.025em;margin:10px 0 14px}h2{font-size:25px;line-height:1.28;margin:36px 0 15px}h3{font-size:20px;line-height:1.35;margin:22px 0 8px}p{margin:9px 0 13px}a{color:var(--accent);text-underline-offset:3px}small,.muted{color:var(--muted)}.lead{font-size:18px}.meta{font-size:13px;color:var(--muted)}
+nav{display:flex;gap:8px 14px;flex-wrap:wrap;font-size:14px;margin-top:18px}nav a{white-space:nowrap}table{width:100%;border-collapse:collapse;margin:15px 0 20px;font-size:15px;line-height:1.48}th,td{text-align:left;vertical-align:top;border:1px solid var(--line);padding:11px 13px;overflow-wrap:anywhere}th{background:#f3f6f7;font-weight:650}tr.selected td:first-child{border-left:4px solid var(--accent)}
+.callout{background:var(--wash);border-left:4px solid var(--accent);padding:15px 19px;margin:18px 0}.callout p:last-child{margin-bottom:0}.badge{display:inline-block;font-size:12px;font-weight:700;color:var(--accent);border:1px solid #bdd8d1;background:var(--wash);border-radius:20px;padding:2px 9px;vertical-align:middle;margin-left:6px}.formula{font-family:"Cambria Math","Times New Roman",serif;font-size:21px;line-height:1.65;background:#f6f8f9;border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:12px 0;overflow-x:auto}.formula .note{font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--muted);display:block;margin-top:5px}.spec{margin:14px 0}.spec>div{display:grid;grid-template-columns:126px 1fr;gap:16px;padding:9px 0;border-bottom:1px solid #e9edef}.spec dt{font-weight:650;color:var(--accent)}.spec dd{margin:0}.spec dd p:first-child{margin-top:0}.spec dd p:last-child{margin-bottom:0}ul,ol{padding-left:24px;margin:9px 0 16px}li{margin:5px 0}section{scroll-margin-top:24px}code,pre{font-family:Consolas,"Liberation Mono",monospace}code{font-size:.87em;background:#f0f3f4;padding:1px 4px;border-radius:3px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f7f8;padding:16px;font-size:13px;line-height:1.5;border-radius:6px}.sources{font-size:14px}.sources li{margin:10px 0}footer{border-top:1px solid var(--line);padding-top:15px;margin-top:32px;font-size:13px;color:var(--muted)}.tight td,.tight th{padding:9px 11px}table th:first-child,table td:first-child{width:22%;overflow-wrap:normal;word-break:normal;hyphens:auto}table.id-table th:first-child,table.id-table td:first-child{width:7%;white-space:nowrap}
+@media(max-width:700px){main{margin:0;border:0;border-radius:0;padding:27px 19px}h1{font-size:28px}h2{font-size:23px}body{font-size:16px}table{font-size:13px}td,th{padding:8px}.spec>div{grid-template-columns:1fr;gap:3px}.formula{font-size:19px}nav{gap:7px 12px}}
+@media print{@page{size:A4;margin:17mm 16mm}html,body{background:#fff;font-size:10pt;line-height:1.43}main{margin:0;padding:0;border:0;max-width:none}header{margin-bottom:15px;padding-bottom:13px}h1{font-size:25pt}h2{font-size:17pt;margin-top:22px}h3{font-size:13pt}table{font-size:9pt}th,td{padding:7px 8px}.lead{font-size:11pt}.formula{font-size:14pt;padding:8px 11px}nav{display:none}.spec>div{grid-template-columns:95px 1fr;gap:12px;padding:6px 0}.eyebrow{font-size:8pt}h1,h2,h3,dt{break-after:avoid}tr,.callout,.formula,.spec>div{break-inside:avoid}thead{display:table-header-group}a{color:inherit}p,li{orphans:3;widows:3}footer{font-size:8pt}.sources{font-size:9pt}.meta{font-size:9pt}}
+
+main{width:calc(100% - 36px)}
+.spec>div{grid-template-columns:145px minmax(0,1fr)}
+.spec dd{min-width:0}
+.table-scroll{max-width:100%;overflow-x:auto;margin:15px 0 20px}
+.table-scroll table{margin:0;min-width:440px}
+.formula{padding:14px 20px;background:#f6faf9;border:1px solid #d6e4df;border-left:3px solid #75a89b;border-radius:8px;break-inside:avoid}
+.formula math{font-size:23px;width:max-content;min-width:0;margin:0;padding:4px 0;text-align:left}
+math{white-space:nowrap;font-size:1.03em}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+@media(max-width:700px){
+  main{width:100%;max-width:none}
+  .spec>div{grid-template-columns:minmax(0,1fr);gap:3px}
+  .formula{padding:12px 13px}
+  .formula math{font-size:20px}
+}
+@media print{
+  main{width:auto}
+  .table-scroll{overflow:visible}
+  .table-scroll table{min-width:0}
+  .formula math{font-size:15pt}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">Полудуплексная коммуникационная сложность</div>
+<h1>Три эксперимента с LLM</h1>
+<nav aria-label="Содержание">
+<a href="#overview">Постановка</a>
+<a href="#comparison">Сравнение</a>
+<a href="#channel">Канал</a>
+<a href="#e1">E1 · Поиск</a>
+<a href="#e2">E2 · Сокращение</a>
+<a href="#e4">E4 · Исполнение</a>
+<a href="#sources">Статьи</a>
+<a href="#tasks">Задачи</a>
+</nav>
+</header>
+<section id="overview" class="level2">
+<h2>1. Что проверяем</h2>
+<p>Алиса и Боб получают разные части входа. Чтобы оба узнали ответ, им
+нужно обменяться информацией через канал, который пропускает один бит за
+раунд, когда один игрок отправляет, а другой слушает. В трёх
+экспериментах мы проверяем, как языковые модели находят, улучшают и
+исполняют протоколы для такого канала.</p>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Эксперимент</th>
+<th>Что получает модель</th>
+<th>Что проверяем</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>E1. Поиск с нуля</td>
+<td>Задачу и правила канала</td>
+<td>Справятся ли агенты и удастся ли извлечь из их действий короткий
+протокол</td>
+</tr>
+<tr class="even">
+<td>E2. Сокращение протокола</td>
+<td>Задачу и готовый корректный протокол</td>
+<td>Сможет ли LLM сократить число раундов в худшем случае</td>
+</tr>
+<tr class="odd">
+<td>E4. Исполнение протокола</td>
+<td>Объяснение готового корректного протокола</td>
+<td>Правильно ли агенты действуют на каждом шаге и получают ответ</td>
+</tr>
+</tbody>
+</table>
+</div><p>Бывший E3 входит в каждый эксперимент как параметр <strong>формат
+входов</strong>. Обозначение E4 совпадает с названием существующего
+ноутбука.</p>
+</section>
+
+<section id="comparison" class="level2">
+<h2>2. Как сравниваем результаты</h2>
+<p><strong>Эпизод</strong> — запуск Алисы и Боба на одной паре входов.
+<strong>Совместная точность</strong> — доля эпизодов, в которых оба
+игрока дали правильный ответ. Ошибки формата, исчерпание лимита и
+несогласованное завершение считаем неудачными эпизодами.</p>
+<p><strong>Попытка поиска</strong> — отдельный запуск процедуры, которая
+подбирает стратегию. В E1 мы наблюдаем поведение агентов, затем при
+возможности записываем найденную стратегию как две программы. В E2
+модель сразу предлагает такую пару программ. Программа Алисы видит
+только её вход и наблюдения. Для Боба действует то же правило.</p>
+<p>Записываем версию модели, инструкции, число попыток и лимит раундов.
+Примеры для настройки инструкций отделяем от итоговой проверки.</p>
+<section id="e3" class="level3">
+<h3>2.1. Формат входов</h3>
+<p>Сначала выбираем пары битовых строк. Затем записываем каждую пару в
+нужных форматах. Например, при
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">n=4</annotation></semantics></math>
+строка <code>1010</code> и список позиций единиц <code>[1, 3]</code>
+задают один и тот же вход. Зная
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>,
+каждый игрок может восстановить свою строку самостоятельно, без обмена.
+Можно также сравнить список битов <code>[1, 0, 1, 0]</code> или
+публичную перестановку координат, если каждый игрок знает, как её
+обратить.</p>
+<p>При сравнении форматов используем одни и те же пары, эталонные ответы
+и бюджеты. В каждой инструкции меняем только описание формата и
+связанные с ним примеры. Обратимая локальная перекодировка сохраняет
+коммуникационную сложность. Разница в результатах показывает, как запись
+влияет на работу LLM.</p>
+</section>
+<section id="распределение-входных-пар" class="level3">
+<h3>2.2. Распределение входных пар</h3>
+<p>Для основной выборки используем <strong>равномерное распределение по
+всем парам</strong> строк длины
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>.
+Например, при
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">n=2</annotation></semantics></math>
+у каждого игрока четыре возможные строки, а у проверяющего 16 возможных
+пар. Если нужно четыре пары, выбираем их равномерно без повторений.
+Каждая пара имеет одинаковый шанс попасть в набор.</p>
+<p>В ноутбуке E4 это уже делает <code>input_pairs()</code>. При
+<code>case_limit=4</code> случайно выбираются четыре разные пары, а
+<code>seed=42</code> позволяет воспроизвести выборку при тех же
+настройках. При <code>case_limit=None</code> запуск с LLM берёт вручную
+заданную пару <code>x, y</code>. Программный эталон отдельно перебирает
+все пары. В этих двух случаях <code>seed</code> на входы не влияет.</p>
+<p>Если хотим проверить работу на разреженных входах, можно добавить
+второе условие. Например, генерировать каждый бит каждой строки
+независимо с вероятностью
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mn>4</mn></mrow><annotation encoding="application/x-tex">1/4</annotation></semantics></math>
+получить единицу. При сравнении распределений меняем правило генерации,
+а формат, размер выборки и настройки запуска фиксируем. Для
+воспроизводимости сохраняем правило генерации, размер выборки,
+<code>seed</code> и сами пары.</p>
+<p>В E1 и E4 распределение задаёт пары для проверки агентов. В E2 оно
+задаёт выборку примеров, если их показываем модели в запросе.
+Корректность и стоимость кандидата в E2 проверяем полным перебором при
+малых
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>.</p>
+<p>Для DISJ при равномерном выборе пары вероятность ответа 1 равна
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mrow><mo stretchy="true" form="prefix">(</mo><mn>3</mn><mi>/</mi><mn>4</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>n</mi></msup><annotation encoding="application/x-tex">(3/4)^n</annotation></semantics></math>.
+С ростом
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+ответ 1 встречается всё реже. Поэтому вместе с общей точностью
+показываем число примеров каждого класса и точность отдельно по ответам
+0 и 1, когда оба представлены.</p>
+</section>
+<section id="выборка-и-полный-перебор" class="level3">
+<h3>2.3. Выборка и полный перебор</h3>
+<p>Точность LLM на выборке описывает её работу на входах из выбранного
+распределения. Для небольшого
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+фиксированный детерминированный протокол проверяем на всех
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>4</mn><mi>n</mi></msup><annotation encoding="application/x-tex">4^n</annotation></semantics></math>
+парах. Этот перебор подтверждает корректность и даёт точную стоимость в
+худшем случае при данном
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>.
+Для утверждения о произвольном размере нужно доказательство.</p>
+</section>
+</section>
+
+<section id="channel" class="level2">
+<h2>3. Правила канала</h2>
+<section id="входы-и-ответ" class="level3">
+<h3>3.1. Входы и ответ</h3>
+<p>Алиса получает битовую строку
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>
+длины
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>,
+Боб — строку
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>y</mi><annotation encoding="application/x-tex">y</annotation></semantics></math>
+той же длины. Оба знают
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>,
+функцию
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>f</mi><annotation encoding="application/x-tex">f</annotation></semantics></math>
+и правила канала. В конце каждый выдаёт значение
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">f(x,y)</annotation></semantics></math>.</p>
+<p><strong>Внутреннее произведение IP.</strong> Считаем позиции, где у
+обоих игроков стоит единица, и берём чётность этого числа.</p>
+<div class="formula"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">I</mi><mi mathvariant="normal">P</mi></mrow><mi>n</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msub><mi>x</mi><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mrow><mspace width="0.222em"></mspace><mo>mod</mo><mspace width="0.222em"></mspace><mn>2</mn></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathrm{IP}_n(x,y)=\left(\sum_{i=1}^{n}x_i y_i\right)\bmod 2.
+</annotation></semantics></math></div>
+<p><strong>Непересечение DISJ.</strong> Возвращаем 1, если у игроков нет
+ни одной общей единичной позиции. Если хотя бы одна такая позиция есть,
+ответ равен 0.</p>
+<div class="formula"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">D</mi><mi mathvariant="normal">I</mi><mi mathvariant="normal">S</mi><mi mathvariant="normal">J</mi></mrow><mi>n</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mn>𝟏</mn><mo stretchy="false" form="prefix">{</mo><mo>∀</mo><mi>i</mi><mo>:</mo><mspace width="0.278em"></mspace><msub><mi>x</mi><mi>i</mi></msub><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathrm{DISJ}_n(x,y)=\mathbf{1}\{\forall i:\;x_i y_i=0\}.
+</annotation></semantics></math></div>
+</section>
+<section id="что-происходит-в-раунде" class="level3">
+<h3>3.2. Что происходит в раунде</h3>
+<p>В начале раунда каждый игрок независимо выбирает действие
+<code>SEND_0</code>, <code>SEND_1</code> или <code>LISTEN</code>.
+Симулятор получает оба действия, затем сообщает каждому игроку только
+его собственное наблюдение.</p>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Действия игроков</th>
+<th>Что видят игроки</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Один отправляет бит, другой слушает</td>
+<td>Слушатель получает бит. Отправитель видит своё действие</td>
+</tr>
+<tr class="even">
+<td>Оба отправляют</td>
+<td>Биты теряются. Каждый игрок видит своё действие</td>
+</tr>
+<tr class="odd">
+<td>Оба слушают в модели с тишиной</td>
+<td>Каждый получает символ <code>SILENCE</code></td>
+</tr>
+<tr class="even">
+<td>Оба слушают в модели с нулём</td>
+<td>Каждый получает обычный ноль. Такое наблюдение совпадает с приёмом
+отправленного нуля</td>
+</tr>
+<tr class="odd">
+<td>Оба слушают в модели с противником</td>
+<td>Каждый получает выбранный противником бит. Биты могут
+различаться</td>
+</tr>
+</tbody>
+</table>
+</div><p>Модели с тишиной и с нулём сравниваем отдельно. Для модели с
+противником корректность проверяем для всех допустимых действий
+противника. Общий журнал видит только программа проверки.</p>
+<p>Остановку определяет сам протокол. Если одному игроку нужно передать
+сигнал о завершении, он использует обычное действие канала и тратит
+раунд. Для запусков фиксированной длины можно заранее назначить раунд,
+после которого оба игрока выдают ответы.</p>
+</section>
+<section id="сколько-стоит-протокол" class="level3">
+<h3>3.3. Сколько стоит протокол</h3>
+<p class="callout"><strong>Стоимость запуска — число прошедших раундов.</strong> Каждый
+раунд считается один раз, включая столкновения и одновременное слушание.
+Если Алиса отправляет четыре бита по одному за раунд, а Боб посылает ей
+бит ответа, стоимость равна пяти раундам.</p>
+<p>Для протокола
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>π</mi><annotation encoding="application/x-tex">\pi</annotation></semantics></math>
+величина
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mo>max</mo></msub><annotation encoding="application/x-tex">C_{\max}</annotation></semantics></math>
+показывает, сколько раундов ему нужно на паре входов, где обмен длится
+дольше всего. Здесь
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mi>π</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">T_\pi(x,y)</annotation></semantics></math>
+— число раундов на конкретной паре.</p>
+<div class="formula"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mo>max</mo></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>max</mo><mrow><mi>x</mi><mo>,</mo><mi>y</mi></mrow></munder><msub><mi>T</mi><mi>π</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+C_{\max}(\pi)=\max_{x,y} T_\pi(x,y).
+</annotation></semantics></math></div>
+<p>Полудуплексная сложность функции — наименьшая такая стоимость среди
+всех корректных протоколов для выбранного канала
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>.
+Множество этих протоколов обозначаем
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>𝒫</mi><mi>m</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>f</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal P_m(f)</annotation></semantics></math>.</p>
+<div class="formula"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>D</mi><mi>m</mi><mrow><mi mathvariant="normal">h</mi><mi mathvariant="normal">d</mi></mrow></msubsup><mrow><mo stretchy="true" form="prefix">(</mo><mi>f</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><munder><mo>min</mo><mrow><mi>π</mi><mo>∈</mo><msub><mi>𝒫</mi><mi>m</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>f</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow></munder><msub><mi>C</mi><mo>max</mo></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+D^{\mathrm{hd}}_m(f)=\min_{\pi\in\mathcal{P}_m(f)} C_{\max}(\pi).
+</annotation></semantics></math></div>
+<p>В экспериментах
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+обозначает заранее заданный <strong>лимит</strong> раундов. Фактическое
+число раундов берём из журнала. Токены, запросы к API и время запуска
+записываем отдельно.</p>
+</section>
+</section>
+
+<section id="e1" class="level2">
+<h2>4. E1. Поиск протокола с нуля</h2>
+<dl class="spec"><div id="цель"><dt>Цель</dt><dd><p>Проверить, смогут ли два агента самостоятельно договориться о том,
+как вычислять IP или DISJ, и получится ли из их действий восстановить
+короткий протокол.</p>
+</dd></div><div id="вход-и-параметры"><dt>Вход и параметры</dt><dd><p>Агенты получают определение функции, размер входа, правила канала,
+лимит раундов и свои приватные строки. В инструкциях описываем задачу и
+доступные действия. Готовую стратегию выдаём только в контрольном
+условии.</p>
+<p>В сравнениях меняем функцию,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>,
+вид канала,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>
+или модель. Чтобы проверить влияние формата, даём агентам те же
+приватные входы в разных записях. Для каждого формата используем
+одинаковое число попыток, лимит раундов и способ настройки
+инструкций.</p>
+</dd></div><div id="как-запускаем"><dt>Как запускаем</dt><dd><ol type="1">
+<li>Проверяем симулятор на простом протоколе. Алиса отправляет все
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+битов, затем Боб вычисляет ответ и отправляет его Алисе. Стоимость равна
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n+1</annotation></semantics></math>.</li>
+<li>Запускаем агентов без готового протокола. После этапа настройки
+фиксируем инструкции и измеряем точность на проверочных входах при
+разных лимитах
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>.</li>
+<li>На тех же входах даём агентам готовый протокол. Отдельно проверяем
+модель, которая сразу видит обе строки. Первый контроль показывает, как
+агенты исполняют правила, второй — насколько хорошо модель вычисляет
+саму функцию.</li>
+<li>Если действия агентов подчиняются ясному правилу, записываем его
+двумя программами и проверяем их на всех парах выбранного размера.</li>
+</ol>
+<p>Для каждого формата повторяем поиск и оба контроля на одних и тех же
+парах. При необходимости отдельно проверяем перенос. Берём инструкции,
+подобранные для одного формата, меняем описание записи входа и запускаем
+на другом формате без повторного поиска стратегии.</p>
+</dd></div><div id="выход-и-метрики"><dt>Выход и метрики</dt><dd><p>Сохраняем ответы обоих игроков, действия, наблюдения и число раундов.
+Для выделенного протокола сохраняем обе программы и результаты
+проверки.</p>
+<ul>
+<li><strong>Качество исполнения.</strong> Совместная точность, доля
+сбоев и среднее число раундов.</li>
+<li><strong>Успех поиска.</strong> Доля независимых попыток, которые
+дали проверенный протокол со стоимостью
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mo>max</mo></msub><mo>≤</mo><mi>T</mi></mrow><annotation encoding="application/x-tex">C_{\max}\le T</annotation></semantics></math>.</li>
+<li><strong>Поведение агентов.</strong> Доли обычных передач,
+столкновений и одновременного слушания. Повторяемость проверяем по
+действиям на одних и тех же входах.</li>
+</ul>
+</dd></div></dl><section id="графики" class="level3">
+<h3>Графики</h3>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>По горизонтали</th>
+<th>По вертикали</th>
+<th>Как читаем</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Лимит
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math></td>
+<td>Совместная точность</td>
+<td>Сравниваем поиск с нуля и исполнение готового протокола. Видим,
+помогает ли больший лимит</td>
+</tr>
+<tr class="even">
+<td>Лимит
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math></td>
+<td>Доля успешных попыток поиска</td>
+<td>Видим, как часто находится корректный протокол, который укладывается
+в лимит</td>
+</tr>
+<tr class="odd">
+<td>Размер
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mo>max</mo></msub><annotation encoding="application/x-tex">C_{\max}</annotation></semantics></math>
+проверенного протокола</td>
+<td>Сравниваем стоимость найденного протокола с исходным</td>
+</tr>
+<tr class="even">
+<td>Формат входов</td>
+<td>Совместная точность и доля успешных поисков на отдельных
+графиках</td>
+<td>Видим, в какой записи агенты чаще решают примеры и в какой чаще
+находят проверяемый протокол</td>
+</tr>
+<tr class="odd">
+<td>Условие запуска</td>
+<td>Доли типов раундов</td>
+<td>Видим, как агенты используют канал</td>
+</tr>
+</tbody>
+</table>
+</div><p>График точности описывает решения на примерах. График успешности
+поиска описывает попытки получить целый протокол. Для стоимости
+отмечаем, где проверены все пары, а где известен максимум по
+выборке.</p>
+</section>
+</section>
+
+<section id="e2" class="level2">
+<h2>5. E2. Сокращение готового протокола</h2>
+<dl class="spec"><div id="цель-1"><dt>Цель</dt><dd><p>Проверить, сможет ли LLM заменить исходный протокол более коротким
+для той же функции, того же канала и того же требования к ответам обоих
+игроков.</p>
+</dd></div><div id="вход-и-параметры-1"><dt>Вход и параметры</dt><dd><p>Модели даём описание задачи, исходные локальные программы, их
+проверенную стоимость
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mn>0</mn></msub><annotation encoding="application/x-tex">C_0</annotation></semantics></math>
+и формат ответа. Исходным протоколом может быть передача всех битов за
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n+1</annotation></semantics></math>
+раундов или проверенная конструкция из статьи R2.</p>
+<p>Меняем функцию, размер входа, исходный протокол и способ поиска. Для
+сравнения форматов описываем приватные входы и показываем примеры в
+выбранной записи. Во всех форматах берём один исходный протокол и одни
+правила проверки. Лимит запросов одинаков и при сравнении форматов, и
+при сравнении способов поиска. Каждая локальная программа может
+декодировать свой вход без затрат раундов канала.</p>
+</dd></div><div id="как-запускаем-1"><dt>Как запускаем</dt><dd><ol type="1">
+<li>Проверяем исходный протокол и измеряем
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mn>0</mn></msub><annotation encoding="application/x-tex">C_0</annotation></semantics></math>.</li>
+<li>Просим LLM предложить две программы с меньшей стоимостью. Симулятор
+запускает их с раздельными входами.</li>
+<li>Проверяем допустимость действий, завершение и оба ответа на всех
+парах малого размера. При ошибке сохраняем пару входов и место
+сбоя.</li>
+<li>В условии с обратной связью возвращаем модели контрпример в
+выбранном формате и даём следующую попытку. Проверяющий перебирает
+исходные пары в одном порядке для всех форматов. Сохраняем лучший
+корректный результат после каждого запроса.</li>
+<li>Сравниваем его с исходной стоимостью и применимыми оценками R2. Если
+для данного размера и канала доказан оптимум, сравниваем и с ним.</li>
+</ol>
+</dd></div><div id="выход-и-метрики-1"><dt>Выход и метрики</dt><dd><p>На выходе получаем пару локальных программ, результаты проверки и
+список контрпримеров. Для корректного кандидата считаем экономию в
+раундах и долю сэкономленных раундов.</p>
+<div class="formula"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Δ</mi><mo>=</mo><msub><mi>C</mi><mn>0</mn></msub><mo>−</mo><msub><mi>C</mi><mo>max</mo></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\Delta=C_0-C_{\max}(\pi).
+</annotation></semantics></math></div>
+<div class="formula"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo>=</mo><mfrac><mrow><msub><mi>C</mi><mn>0</mn></msub><mo>−</mo><msub><mi>C</mi><mo>max</mo></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><msub><mi>C</mi><mn>0</mn></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+G=\frac{C_0-C_{\max}(\pi)}{C_0}.
+</annotation></semantics></math></div>
+<p>Дополнительно измеряем долю корректных кандидатов, долю независимых
+поисков со строгим улучшением и число запросов до первого улучшения.
+Если улучшение не найдено, сохраняем исходную стоимость в графике хода
+поиска.</p>
+<p>Полный перебор входов проверяет конкретный протокол. Для
+доказательства оптимальности нужно отдельно исключить все корректные
+протоколы меньшей стоимости. Если перебираем только определённый класс
+программ, указываем этот класс рядом с его оптимумом.</p>
+</dd></div></dl><section id="графики-1" class="level3">
+<h3>Графики</h3>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>По горизонтали</th>
+<th>По вертикали</th>
+<th>Как читаем</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Размер
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>C</mi><mo>max</mo></msub><annotation encoding="application/x-tex">C_{\max}</annotation></semantics></math></td>
+<td>Сравниваем исходный и улучшенный протоколы</td>
+</tr>
+<tr class="even">
+<td>Число запросов к LLM</td>
+<td>Лучшая проверенная стоимость</td>
+<td>Видим, после скольких попыток появилось улучшение</td>
+</tr>
+<tr class="odd">
+<td>Режим поиска</td>
+<td>Доля поисков с улучшением</td>
+<td>Сравниваем воспроизводимость улучшений</td>
+</tr>
+<tr class="even">
+<td>Формат входов</td>
+<td>Доля поисков с улучшением и экономия
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Δ</mi><annotation encoding="application/x-tex">\Delta</annotation></semantics></math>
+на отдельных графиках</td>
+<td>Сравниваем, в какой записи модель чаще сокращает протокол и сколько
+раундов экономит</td>
+</tr>
+</tbody>
+</table>
+</div></section>
+</section>
+
+<section id="e4" class="level2">
+<h2>6. E4. Исполнение объяснённого протокола</h2>
+<dl class="spec"><div id="цель-2"><dt>Цель</dt><dd><p class="callout">Проверить, может ли модель применить правила готового протокола к
+новым входам. Цель — <strong>100% правильных совместных ответов и 100%
+точного исполнения</strong> на проверочном наборе.</p>
+</dd></div><div id="вход-и-параметры-2"><dt>Вход и параметры</dt><dd><p>Каждый агент получает свой вход и инструкции для своей роли. В
+инструкции описываем, когда отправлять бит или слушать, как обработать
+наблюдение, когда остановиться и какой ответ выдать.</p>
+<p>Сравниваем словесное объяснение, псевдокод, таблицу переходов и
+объяснение с примерами. Формат входов меняем отдельно. Например,
+оставляем то же объяснение, но даём каждой роли список позиций единиц
+вместо строки. И в пошаговой проверке, и в полном обмене используем те
+же пары, эталонные действия и протокол. Отдельно можно менять модель,
+функцию, размер строки или сложность протокола.</p>
+</dd></div><div id="как-запускаем-2"><dt>Как запускаем</dt><dd><ol type="1">
+<li>Реализуем эталонный протокол программно и проверяем его на всех
+парах малого размера. Начинаем с протокола за
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n+1</annotation></semantics></math>
+раундов, где Алиса отправляет строку, а Боб возвращает ответ.</li>
+<li>Проверяем отдельные решения. Агент получает свой вход и историю из
+эталонного запуска. Он выбирает следующее действие или выдаёт ответ.
+Программа сравнивает его выбор с эталоном.</li>
+<li>Запускаем полный обмен между двумя LLM. На каждом раунде сверяем
+действия с эталоном и записываем первое отклонение.</li>
+<li>Для диагностики поочерёдно заменяем Алису и Боба программным
+исполнителем. Пара программных исполнителей служит проверкой
+симулятора.</li>
+</ol>
+<p><strong>Пример.</strong> Для IP на входах
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>=</mo><mn>10</mn></mrow><annotation encoding="application/x-tex">x=10</annotation></semantics></math>
+и
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>=</mo><mn>11</mn></mrow><annotation encoding="application/x-tex">y=11</annotation></semantics></math>
+Алиса отправляет 1 и 0. Боб вычисляет
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>⋅</mo><mn>1</mn><mo>+</mo><mn>0</mn><mo>⋅</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mrow><mspace width="0.222em"></mspace><mo>mod</mo><mspace width="0.222em"></mspace><mn>2</mn></mrow><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">(1\cdot1+0\cdot1)\bmod2=1</annotation></semantics></math>
+и отправляет 1. Оба должны ответить 1 после третьего раунда.</p>
+</dd></div><div id="выход-и-метрики-2"><dt>Выход и метрики</dt><dd><p>В журнале сохраняем обе локальные истории, ответы и первое
+расхождение с эталоном. Указываем роль, раунд, ожидаемое и полученное
+действие.</p>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Метрика</th>
+<th>Как считаем</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Совместная точность</td>
+<td>Доля эпизодов, где оба ответа правильные</td>
+</tr>
+<tr class="even">
+<td>Точность следующего действия</td>
+<td>Доля совпадений с эталоном на заданных локальных историях</td>
+</tr>
+<tr class="odd">
+<td>Точное исполнение</td>
+<td>Доля эпизодов, где все действия, остановка и ответы совпали с
+эталоном</td>
+</tr>
+<tr class="even">
+<td>Ошибки вычисления</td>
+<td>Доля неверных ответов среди эпизодов, где обмен прошёл по
+правилам</td>
+</tr>
+</tbody>
+</table>
+</div><p>Правильный ответ после отклонения повышает совместную точность.
+Точное исполнение засчитываем только при совпадении всех шагов. Если
+генерация случайна, повторяем проверку и указываем число повторов.
+Дополнительно сравниваем фактическое число раундов с эталоном.</p>
+</dd></div></dl><section id="графики-2" class="level3">
+<h3>Графики</h3>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>По горизонтали</th>
+<th>По вертикали</th>
+<th>Как читаем</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Размер
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math></td>
+<td>Совместная точность и точное исполнение</td>
+<td>Видим, где модели перестают справляться с правилами или
+вычислением</td>
+</tr>
+<tr class="even">
+<td>Формат объяснения</td>
+<td>Точность действий и полных эпизодов</td>
+<td>Сравниваем способы объяснить один протокол</td>
+</tr>
+<tr class="odd">
+<td>Формат входов</td>
+<td>Точность действий и точное исполнение</td>
+<td>Проверяем, влияет ли запись входа на исполнение при одном
+объяснении</td>
+</tr>
+<tr class="even">
+<td>Тип ошибки или пара исполнителей</td>
+<td>Доля эпизодов с ошибкой</td>
+<td>Определяем, на какой роли или шаге чаще возникает сбой</td>
+</tr>
+</tbody>
+</table>
+</div><p>E4 помогает разобрать ошибки E1. Если агент ошибается даже с готовыми
+правилами, смотрим, на каком шаге он сбился. Если он точно выполняет
+объяснённый протокол, отдельно оцениваем, способен ли он найти его
+сам.</p>
+</section>
+</section>
+
+<section id="sources" class="level2">
+<h2>7. Релевантные статьи</h2>
+<section id="полудуплексная-модель-и-оценки" class="level3">
+<h3>Полудуплексная модель и оценки</h3>
+<ul class="sources">
+<li><strong>R1. Hoover, Impagliazzo, Mihajlin и Smal, ISAAC
+2018.</strong> Определения полудуплексного канала, локальных деревьев
+протокола и вариантов одновременного слушания. По ним задаём действия,
+наблюдения и завершение. <a href="https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ISAAC.2018.10">Half-Duplex
+Communication Complexity</a></li>
+<li><strong>R2. Dementiev и соавторы, ECCC TR26-112, 2026.</strong>
+Протоколы и оценки для IP и DISJ. Разделы 2–3 задают теоретические
+ориентиры для симулятора и E2. <a href="https://eccc.weizmann.ac.il/report/2026/112/">Improved Bounds on
+the Half-Duplex Communication Complexity</a></li>
+<li><strong>R3. Dementiev, Ignatiev, Sidelnik, Smal и Ushakov, SOFSEM
+2021.</strong> Нижние оценки и конструкции для DISJ. При работе с
+препринтом учитываем исправления в редакции 3. <a href="https://eccc.weizmann.ac.il/report/2020/117/">New Bounds on the
+Half-Duplex Communication Complexity</a></li>
+<li><strong>R3a. Dektiarev и Vereshchagin, ECCC TR23-011, редакция
+2024.</strong> Сравнение классической модели и полудуплексной модели с
+противником. Используем для постановки экспериментов с противником. <a href="https://eccc.weizmann.ac.il/report/2023/011/">Half-Duplex
+Communication Complexity with Adversary Can Be Less than the Classical
+Communication Complexity</a></li>
+</ul>
+<p>В таблице приведены оценки из R2. Стоимость конкретной реализации
+измеряем отдельно для её размера входа и канала.</p>
+<div class="table-scroll"><table class="tight">
+<thead>
+<tr class="header">
+<th>Функция и канал</th>
+<th>Нижняя оценка</th>
+<th>Верхняя оценка</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>IP, тишина</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mi>/</mi><mn>2</mn></mrow><annotation encoding="application/x-tex">n/2</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">⌈</mo><mi>n</mi><mi>/</mi><mn>2</mn><mo stretchy="false" form="postfix">⌉</mo><mo>+</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">\lceil n/2\rceil+2</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td>IP, ноль</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>0.72021</mn><mi>n</mi></mrow><annotation encoding="application/x-tex">\approx 0.72021n</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">⌈</mo><mn>7</mn><mi>n</mi><mi>/</mi><mn>8</mn><mo stretchy="false" form="postfix">⌉</mo><mo>+</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">\lceil 7n/8\rceil+4</annotation></semantics></math></td>
+</tr>
+<tr class="odd">
+<td>DISJ, тишина</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>0.43068</mn><mi>n</mi></mrow><annotation encoding="application/x-tex">\approx 0.43068n</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mi>/</mi><mn>2</mn><mo>+</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">n/2+2</annotation></semantics></math></td>
+</tr>
+<tr class="even">
+<td>DISJ, ноль</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>0.63092</mn><mi>n</mi></mrow><annotation encoding="application/x-tex">\approx 0.63092n</annotation></semantics></math></td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.6615</mn><mi>n</mi><mo>+</mo><mi>O</mi><mrow><mo stretchy="true" form="prefix">(</mo><msup><mo>log</mo><mn>2</mn></msup><mi>n</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">0.6615n+O(\log^2 n)</annotation></semantics></math></td>
+</tr>
+</tbody>
+</table>
+</div></section>
+<section id="эксперименты-с-агентами" class="level3">
+<h3>Эксперименты с агентами</h3>
+<ul class="sources">
+<li><strong>R4. Taillandier и соавторы, ICLR 2023.</strong> Два агента
+независимо выбирают передачу или молчание. Режим Walkie-Talkie близок к
+нашему каналу. В режиме Noise агентам сообщают о столкновении. Для E1
+берём сравнение стратегий, точности и числа столкновений. <a href="https://openreview.net/forum?id=GULFHQfgw0g">Neural Agents
+Struggle to Take Turns in Bidirectional Emergent Communication</a></li>
+<li><strong>R5. Eisenstein и соавторы, 2026.</strong> Две LLM решают
+задачи с раздельной информацией. В Name-game они ищут общую запись в
+двух таблицах. Для E1 полезен контроль числа ходов и одинаковых
+проверочных примеров. В статье используется текстовый обмен по очереди.
+<a href="https://arxiv.org/abs/2602.24188">MT-PingEval</a></li>
+<li><strong>R6. Anand, Chandrasekaran и Chaitanya, 2026.</strong> По
+аннотации, оптимизация промптов помогает двум замороженным моделям
+согласовать код для короткого одностороннего сообщения. Для E1 полезна
+схема с фиксацией найденного кода и проверкой на новых объектах. <a href="https://arxiv.org/abs/2609.31989">Communication between Frozen
+Large Language Models via Prompt Optimization in a Referential
+Game</a></li>
+<li><strong>R7. Rizvi-Martel и соавторы, препринт 2025.</strong> Авторы
+задают стратегии обмена и измеряют их качество на задачах поиска и
+отслеживания состояния. Для E4 полезно сравнение исполнения заданной
+стратегии с теоретическим эталоном. <a href="https://arxiv.org/abs/2510.13903">Benefits and Limitations of
+Communication in Multi-Agent Reasoning</a></li>
+<li><strong>R8. Evtimova и соавторы, ICLR 2018.</strong> Агенты видят
+разные модальности и обмениваются бинарными векторами. Авторы сравнивают
+точность, размер сообщений и длину диалога. <a href="https://arxiv.org/abs/1705.10369">Emergent Communication in a
+Multi-Modal, Multi-Step Referential Game</a></li>
+<li><strong>R8a. Kottur и соавторы, EMNLP 2017.</strong> Один агент
+знает объект, другой знает, какие его свойства нужно определить. Task
+&amp; Talk показывает, как явно задать приватный вход каждой роли и
+конечный алфавит сообщений. <a href="https://aclanthology.org/D17-1321/">Natural Language Does Not
+Emerge ‘Naturally’ in Multi-Agent Dialog</a></li>
+<li><strong>R8b. Tirmazi и соавторы, 2026.</strong> Аннотация связывает
+сжатие контекста с односторонней коммуникационной сложностью и приводит
+задачу проверки принадлежности множеству. <a href="https://arxiv.org/abs/2608.01326">Context Compaction
+Theory</a></li>
+</ul>
+</section>
+<section id="проверка-сгенерированных-протоколов" class="level3">
+<h3>Проверка сгенерированных протоколов</h3>
+<p><strong>R9. Li, Hou и Yoshida, ASE 2026.</strong> Syntropy генерирует
+варианты распределённых протоколов и проверяет поведенческую
+совместимость. В E2 можно использовать тот же цикл «предложить кандидата
+→ проверить ограничения → сохранить результат». В нашем случае проверка
+должна учитывать правильность IP или DISJ и число раундов. <a href="https://mrg.cs.ox.ac.uk/publications/specification-guided-synthesis-of-deadlock-free-communication-protocol-refinements-with-large-language-models/">Specification-Guided
+Synthesis of Deadlock-Free Communication Protocol Refinements with Large
+Language Models</a></p>
+<p>SILO-BENCH предлагает распределённые алгоритмические задачи с точными
+ответами. Его можно использовать как источник дополнительных задач. <a href="https://aclanthology.org/2026.acl-long.1354/">SILO-BENCH</a></p>
+</section>
+</section>
+
+<section id="tasks" class="level2">
+<h2>8. Дополнительные задачи</h2>
+<div class="table-scroll"><table class="tight">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Задача</th>
+<th>Кто что знает</th>
+<th>Что нужно получить</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Equality</td>
+<td>У Алисы строка
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>,
+у Боба строка
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>y</mi><annotation encoding="application/x-tex">y</annotation></semantics></math></td>
+<td>Определить, равны ли строки. Для проверки включаем и равные, и
+разные пары</td>
+</tr>
+<tr class="even">
+<td>Index</td>
+<td>Алиса знает строку, Боб знает индекс
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math></td>
+<td>Боб узнаёт бит
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>i</mi></msub><annotation encoding="application/x-tex">x_i</annotation></semantics></math>.
+Сравниваем протоколы с тем же требованием к ответу</td>
+</tr>
+<tr class="odd">
+<td>Единственный общий элемент</td>
+<td>У каждого свой список. Общий элемент ровно один</td>
+<td>Найти этот элемент. Фиксируем словарь и длину ответа</td>
+</tr>
+<tr class="even">
+<td>Восстановление объекта</td>
+<td>Каждый видит часть атрибутов. Каждый атрибут известен хотя бы одному
+игроку</td>
+<td>Восстановить объект целиком</td>
+</tr>
+</tbody>
+</table>
+</div></section>
+
+</main>
+</body>
+</html>
