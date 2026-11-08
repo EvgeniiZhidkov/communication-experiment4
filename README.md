@@ -12,7 +12,7 @@
 
 ## Как посмотреть результаты
 
-1. Открыть `experiment4.ipynb` в Jupyter или VS Code.
+1. Открыть `experiment4_7.ipynb` в Jupyter или VS Code.
 2. Выполнить **Run All** с `run_mode = "off"`.
 3. Для пересчёта метрик указать путь к исходному JSONL из `results/`
    в разделе 12. Для графиков указать путь к отчёту `_analysis_`
