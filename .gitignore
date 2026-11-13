@@ -1,5 +1,10 @@
 .venv*/
+.idea/
 __pycache__/
 .ipynb_checkpoints/
 .env
 .codex/
+runs/
+*.egg-info/
+build/
+dist/

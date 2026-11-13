@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halfduplex-reproduction"
+version = "0.1.0"
+description = "Reproduction of half-duplex protocols with auditable model players"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+plots = ["matplotlib>=3.7"]
+
+[tool.setuptools.packages.find]
+include = ["halfduplex*"]

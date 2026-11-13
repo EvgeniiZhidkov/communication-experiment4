@@ -1,0 +1,24 @@
+{
+  "task": "eq",
+  "channel": "zero",
+  "protocol": "specialized",
+  "n": 5,
+  "experiment": "episode",
+  "alice": {
+    "backend": "codex",
+    "model": null,
+    "allow_python": true
+  },
+  "bob": {
+    "backend": "codex",
+    "model": null,
+    "allow_python": true
+  },
+  "explanation": "prose",
+  "input_format": "bits",
+  "sampling": "eq_balanced",
+  "case_limit": 15,
+  "seed": 42,
+  "repeats": 1,
+  "output_dir": "runs"
+}
