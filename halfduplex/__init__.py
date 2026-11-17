@@ -4,7 +4,9 @@ from .config import PlayerConfig, RunConfig
 from .experiment import audit_tools, input_pairs, run_experiment
 from .plotting import plot_results
 from .protocols import PROTOCOL_MODES, PROTOCOLS, get_protocol
+from .visualization import ProtocolExport, draw_protocol, export_protocols, load_protocol_log
 
 __all__ = ["PlayerConfig", "RunConfig", "run_experiment", "audit_tools", "input_pairs",
            "analyze_file", "analyze_run", "verify_reference", "plot_results",
-           "PROTOCOL_MODES", "PROTOCOLS", "get_protocol"]
+           "PROTOCOL_MODES", "PROTOCOLS", "get_protocol", "ProtocolExport", "draw_protocol",
+           "export_protocols", "load_protocol_log"]

@@ -1,10 +1,10 @@
-"""python -m halfduplex reference/run/analyze/audit-tools"""
+"""python -m halfduplex reference/run/analyze/audit-tools/visualize"""
 import argparse
 import json
 from dataclasses import replace
 from pathlib import Path
 
-from . import PlayerConfig, RunConfig, analyze_file, audit_tools, run_experiment, verify_reference
+from . import PlayerConfig, RunConfig, analyze_file, audit_tools, export_protocols, run_experiment, verify_reference
 from .protocols import PROTOCOL_MODES
 
 
@@ -29,6 +29,13 @@ def main():
     audit = sub.add_parser("audit-tools", help="Один реальный запрос с проверкой вызова Python")
     audit.add_argument("--model")
     audit.add_argument("--output-dir", default="runs")
+    visualize = sub.add_parser("visualize", help="Диаграммы обмена: HTML и SVG/PDF/PNG без запросов к моделям")
+    visualize.add_argument("log_path", type=Path, help="journal.jsonl или report.jsonl (episode)")
+    visualize.add_argument("--output-dir", type=Path)
+    visualize.add_argument("--formats", nargs="+", choices=("svg", "pdf", "png"), default=("svg", "pdf", "png"))
+    visualize.add_argument("--episode", type=int, help="Одна игра: порядковый номер в журнале, начиная с 1")
+    visualize.add_argument("--rounds-per-page", type=int, default=20)
+    visualize.add_argument("--dpi", type=int, default=300)
     args = parser.parse_args()
     if args.command == "reference":
         try:
@@ -41,6 +48,14 @@ def main():
         result = analyze_file(args.log_path)
     elif args.command == "audit-tools":
         result = audit_tools(PlayerConfig(model=args.model), output_dir=args.output_dir)
+    elif args.command == "visualize":
+        try:
+            exported = export_protocols(args.log_path, output_dir=args.output_dir,
+                                        formats=tuple(args.formats), episode=args.episode,
+                                        rounds_per_page=args.rounds_per_page, dpi=args.dpi)
+        except (ValueError, RuntimeError, OSError) as exc:
+            parser.error(str(exc))
+        result = {"html": str(exported.html_path), "episodes": exported.episodes, "figures": len(exported.files)}
     else:
         values = json.loads(args.config.read_text(encoding="utf-8"))
         for role in ("alice", "bob"):

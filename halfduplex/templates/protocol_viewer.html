@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E4 · Протокол обмена</title>
+  <style>
+    :root{color-scheme:light;--ink:#172b3a;--muted:#647580;--line:#dce2df;--paper:#f4f3ee;--teal:#147d83;--red:#b63838}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+    header{background:var(--ink);color:#fff;padding:28px max(24px,calc((100vw - 1420px)/2));border-bottom:4px solid #95c5ba}
+    .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a7ccc7}h1{font-size:30px;line-height:1.2;font-weight:600;margin:9px 0}
+    header p{margin:0;color:#c5d4d9;font-size:14px}main{max-width:1468px;margin:auto;padding:26px 24px 50px}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.stat{padding:17px 20px;background:white;border:1px solid var(--line);border-radius:8px}
+    .stat b{display:block;font-size:25px;font-weight:600;line-height:1.2;margin-bottom:5px}.stat span{font-size:12px;color:var(--muted)}
+    .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:18px;background:white;border:1px solid var(--line);border-radius:8px}
+    label{display:block;font-size:12px;color:var(--muted)}label>select,label>input[type=search]{display:block;margin-top:5px}select,input,button,.download{font:inherit;border:1px solid #c5d0d1;border-radius:5px;background:#fff;color:var(--ink);padding:8px 11px;min-height:41px}
+    select:focus,input:focus,button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #88bfbb;outline-offset:2px}
+    input[type=checkbox]{min-height:auto;accent-color:var(--teal)}input[type=search]{width:180px}input[type=range]{display:block;width:130px;padding:0;accent-color:var(--teal)}#episode{min-width:330px;max-width:100%}
+    button,.download{cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}button:hover,.download:hover{background:#eef5f3;border-color:#96b4ae}
+    button:disabled{opacity:.38;cursor:default}.toggle{padding-bottom:10px;color:var(--ink);white-space:nowrap}.grow{flex:1}
+    .notice{border-left:3px solid #ae6b16;padding:10px 14px;background:#fbf4e6;font-size:13px;margin:15px 0}.case{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:25px 0 14px}
+    h2{font-size:20px;font-weight:600;margin:0}.badge{font-size:12px;padding:4px 9px;border-radius:4px;background:#e1efea;color:#286b54}.badge.bad{background:#f8e6e4;color:var(--red)}
+    .diagrams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.diagrams.single{grid-template-columns:minmax(0,1fr);max-width:900px;margin:auto}
+    .card{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}.card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600}
+    .card-head span{font-size:12px;font-weight:400;color:var(--muted)}.svg-wrap{overflow:auto;padding:8px}.svg-wrap svg{display:block;width:100%;height:auto;min-width:460px}
+    .explanation{font-size:13px;color:var(--muted);margin:13px 0 23px}.explanation strong{color:var(--ink);font-weight:500}
+    .exports{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 24px;font-size:13px}.exports .download{min-height:35px;padding:5px 12px}.exports select{min-height:35px;padding:5px 10px}
+    details{background:white;border:1px solid var(--line);border-radius:7px;margin-top:14px}summary{padding:14px 18px;cursor:pointer;font-weight:500;font-size:14px}
+    .table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:10px 13px;border-top:1px solid #e5eae8;vertical-align:top}th{color:var(--muted);font-weight:500;background:#fafbf9}
+    tr.deviation td{background:#fff4e8}td code{font-size:11px;white-space:nowrap}.small{font-size:11px;color:var(--muted)}pre{margin:0;padding:18px;overflow:auto;font-size:12px;max-height:470px;white-space:pre-wrap;overflow-wrap:anywhere}
+    .empty{padding:45px 20px;text-align:center;color:var(--muted)}.hidden,[hidden]{display:none!important}footer{margin-top:24px;color:var(--muted);font-size:12px}
+    @media(max-width:900px){.diagrams{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}#episode{min-width:240px}h1{font-size:25px}}
+    @media(max-width:520px){main{padding:18px 12px}.toolbar{padding:12px}#episode{min-width:0;width:100%}.episode-control{width:100%}.stat{padding:13px}.svg-wrap svg{min-width:440px}}
+    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p,.eyebrow{color:var(--muted)}main{padding:12px}.toolbar,.summary,.exports,details,footer{display:none}.diagrams{display:block}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Communication experiment / E4</div>
+  <h1>Протокол обмена</h1>
+  <p id="run-label"></p>
+</header>
+<main>
+  <div class="summary">
+    <div class="stat"><b id="total"></b><span>игр в исходном журнале</span></div>
+    <div class="stat"><b id="accuracy"></b><span>оба ответа верны</span></div>
+    <div class="stat"><b id="exact"></b><span>точное исполнение</span></div>
+    <div class="stat"><b id="rounds"></b><span>среднее число раундов</span></div>
+  </div>
+  <div class="notice" id="incomplete" hidden>Прогон не завершён. Показаны только эпизоды, которые успели сохраниться.</div>
+  <div class="toolbar">
+    <label>Показать<select id="filter"><option value="all">Все игры</option><option value="deviation">С отклонениями</option><option value="incorrect">С неверным ответом / остановкой</option></select></label>
+    <label>Поиск по входам<input id="search" type="search" placeholder="Например, 1010"></label>
+    <label class="episode-control grow">Игра<select id="episode"></select></label>
+    <button id="previous" aria-label="Предыдущая игра">←</button><button id="next" aria-label="Следующая игра">→</button>
+    <label>Страница<select id="page"></select></label>
+    <label>Масштаб <output id="zoom-value">100%</output><input type="range" id="zoom" min="70" max="200" step="10" value="100" aria-label="Масштаб диаграмм"></label>
+    <label class="toggle"><input type="checkbox" id="reference" checked> Показать эталон</label>
+  </div>
+  <div id="empty" class="empty" hidden>Нет игр, соответствующих фильтру.</div>
+  <section id="content">
+    <div class="case"><h2 id="case-label"></h2><span id="answer-badge" class="badge"></span><span id="exact-badge" class="badge"></span></div>
+    <div class="diagrams" id="diagrams">
+      <article class="card"><div class="card-head">Фактический обмен <span id="actual-status"></span></div><div id="actual-diagram" class="svg-wrap"></div></article>
+      <article class="card" id="reference-card"><div class="card-head">Программный эталон <span>для тех же x и y</span></div><div id="reference-diagram" class="svg-wrap"></div></article>
+    </div>
+    <p class="explanation"><strong>Читать сверху вниз.</strong> Стрелка — доставленный бит. Две встречные стрелки с крестом — столкновение, биты потеряны. Пунктир — оба слушают. <code>obs: —</code> означает отсутствие наблюдения; <code>0</code> и <code>SILENCE</code> различаются. Красная рамка — локальная ошибка или неверный ответ; охристая — отклонение от эталонной траектории. Столкновение само по себе может быть частью правильного алгоритма. Блок STOP показывает локальные решения и не расходует раунд связи. Названия фаз соответствуют номерам раундов эталонного алгоритма.</p>
+    <div class="exports"><span>Скачать страницу:</span><select id="export-kind" aria-label="Источник картинки"><option value="actual">Фактический обмен</option><option value="reference">Эталон</option></select><span id="download-links"></span><button id="download-svg">SVG</button><span class="small">SVG/PDF — векторные, PNG — 300 dpi по умолчанию. Подписи на английском для статьи.</span></div>
+    <details open><summary>Раунды и наблюдения · текущая страница</summary><div class="table-wrap"><table><thead><tr><th>Раунд / фаза</th><th>Alice</th><th>Наблюдение Alice</th><th>Bob</th><th>Наблюдение Bob</th><th>Диагностика</th></tr></thead><tbody id="round-table"></tbody></table></div></details>
+    <details><summary>Первое отклонение и локальные ошибки</summary><pre id="errors"></pre></details>
+    <details><summary>JSON эпизода с диагностикой</summary><pre id="raw-json"></pre></details>
+  </section>
+  <footer>Визуализация сохранённого JSONL. Оба входа показаны для исследователя; во время эксперимента каждый игрок видел только свой вход. Эталон вычислен программно. Этот HTML работает без сервера и внешних ресурсов; для ссылок на PDF/PNG сохраните рядом папку figures.</footer>
+</main>
+<script id="protocol-data" type="application/json">__PROTOCOL_DATA__</script>
+<script>
+"use strict";
+const data = JSON.parse(document.getElementById("protocol-data").textContent);
+const $ = id => document.getElementById(id);
+let visible = [], current = null;
+const percent = m => m?.rate == null ? "—" : `${(100*m.rate).toFixed(1)}% · ${m.count}/${m.total}`;
+$("run-label").textContent = `${data.task.toUpperCase()} · n=${data.n} · ${data.implementation} · channel=${data.channel} · ${data.source}`;
+$("total").textContent = data.summary.joint_accuracy.total;
+$("accuracy").textContent = percent(data.summary.joint_accuracy);
+$("exact").textContent = percent(data.summary.exact_execution);
+$("rounds").textContent = data.summary.mean_rounds == null ? "—" : data.summary.mean_rounds.toFixed(2);
+$("incomplete").hidden = data.summary.run_complete;
+function option(value, label) { const e=document.createElement("option");e.value=String(value);e.textContent=label;return e; }
+function refreshList() {
+  const old = current?.number, mode=$("filter").value, query=$("search").value.trim();
+  visible=data.episodes.filter(e => (mode==="all" || (mode==="deviation" ? !e.exact : !e.joint_correct)) && (!query || e.x.includes(query) || e.y.includes(query)));
+  $("episode").replaceChildren(...visible.map(e=>option(e.number,`#${e.number} · x=${e.x.length>28?e.x.slice(0,27)+"…":e.x} · y=${e.y.length>28?e.y.slice(0,27)+"…":e.y} · повтор ${e.repeat}`)));
+  if(visible.some(e=>e.number===old)) $("episode").value=String(old);
+  chooseEpisode();
+}
+function chooseEpisode() {
+  current=visible.find(e=>String(e.number)===$("episode").value)||null;
+  $("content").hidden=!current;$("empty").hidden=!!current;
+  const index=visible.indexOf(current);$("previous").disabled=index<=0;$("next").disabled=index<0||index>=visible.length-1;
+  $("page").replaceChildren();
+  if(!current)return;
+  const count=Math.max(current.actual.pages.length,current.reference.pages.length);
+  for(let i=0;i<count;i++)$("page").append(option(i,`${i+1} / ${count}`));
+  $("case-label").textContent=`Игра #${current.number} · f(x,y)=${current.truth}`;
+  for(const [id,good,yes,no] of [["answer-badge",current.joint_correct,"Оба ответа верны","Ошибка ответа / завершения"],["exact-badge",current.exact,"Точное исполнение","Есть отклонения"]]) {
+    $(id).textContent=good?yes:no;$(id).className="badge"+(good?"":" bad");
+  }
+  $("actual-status").textContent=`${current.actual.rows.length} раундов · ${current.actual.status}`;
+  $("errors").textContent=JSON.stringify({first_deviation:current.record.first_deviation,first_local_error:current.record.first_local_error,local_errors:current.actual.local_errors},null,2);
+  $("raw-json").textContent=JSON.stringify(current.record,null,2);
+  renderPage();
+}
+function renderPage() {
+  if(!current)return;
+  const page=Number($("page").value);
+  for(const kind of ["actual","reference"]){
+    const box=$(kind+"-diagram"), item=current[kind].pages[page];
+    box.replaceChildren();
+    if(item){box.innerHTML=item.svg;const svg=box.querySelector("svg");svg.setAttribute("role","img");svg.setAttribute("aria-label",`${kind} · игра ${current.number} · страница ${page+1}`);svg.style.width=$("zoom").value+"%";}
+    else{const p=document.createElement("p");p.className="empty";p.textContent="Обмен завершён на предыдущей странице.";box.append(p);}
+  }
+  const show=$("reference").checked;$("reference-card").hidden=!show;$("diagrams").classList.toggle("single",!show);
+  const body=$("round-table");body.replaceChildren();
+  const perPage=data.rounds_per_page;
+  const selected=current.actual.rows.slice(page*perPage,(page+1)*perPage);
+  function add(values, bad=false){const tr=document.createElement("tr");if(bad)tr.className="deviation";for(const value of values){const td=document.createElement("td");td.textContent=value;tr.append(td);}body.append(tr);}
+  for(const row of selected){
+    const notes=[];
+    for(const role of ["Alice","Bob"]){const wanted=row.expected_local[role];if(wanted!==row.actions[role])notes.push(`${role}: по локальной истории ожидалось ${wanted??"не определено"}`);}
+    const deviations=current.actual.deviations.filter(e=>e.round===row.index);
+    for(const e of deviations)if(!notes.some(s=>s.startsWith(e.role+":")))notes.push(`${e.role}: по эталонной траектории ${e.expected??"решения нет"}`);
+    const obs=role=>row.observations[role]===null?"— (нет наблюдения)":row.observations[role];
+    add([`${row.index} · ${row.phase}`,row.actions.Alice,obs("Alice"),row.actions.Bob,obs("Bob"),notes.join("; ")||"Совпадает с эталоном"],notes.length>0);
+  }
+  if(page===current.actual.pages.length-1){const final=current.actual.final||{};add(["STOP · без передачи",final.Alice||"NO ANSWER","—",final.Bob||"NO ANSWER","—",current.actual.status],!current.joint_correct);}
+  if(!selected.length&&page>=current.actual.pages.length)add(["—","Обмен уже завершён","—","—","—","—"]);
+  refreshDownloads();
+}
+function refreshDownloads(){
+  const holder=$("download-links");holder.replaceChildren();
+  if(!current)return;
+  const entry=current[$("export-kind").value].pages[Number($("page").value)];
+  $("download-svg").disabled=!entry;
+  for(const fmt of ["pdf","png"]){if(!entry?.exports[fmt])continue;const a=document.createElement("a");a.className="download";a.href=entry.exports[fmt];a.download="";a.textContent=fmt.toUpperCase();holder.append(a,document.createTextNode(" "));}
+}
+$("download-svg").addEventListener("click",()=>{const kind=$("export-kind").value,page=Number($("page").value),entry=current[kind].pages[page];if(!entry)return;const url=URL.createObjectURL(new Blob([entry.svg],{type:"image/svg+xml;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download=`episode_${String(current.number).padStart(4,"0")}_${kind}_p${page+1}.svg`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+$("filter").addEventListener("change",refreshList);$("search").addEventListener("input",refreshList);$("episode").addEventListener("change",chooseEpisode);
+$("page").addEventListener("change",renderPage);$("reference").addEventListener("change",renderPage);$("export-kind").addEventListener("change",refreshDownloads);
+$("zoom").addEventListener("input",()=>{$("zoom-value").textContent=$("zoom").value+"%";document.querySelectorAll(".svg-wrap svg").forEach(svg=>svg.style.width=$("zoom").value+"%");});
+for(const [id,direction] of [["previous",-1],["next",1]])$(id).addEventListener("click",()=>{const i=visible.indexOf(current)+direction;if(i>=0&&i<visible.length){$("episode").value=String(visible[i].number);chooseEpisode();}});
+refreshList();
+</script>
+</body>
+</html>
