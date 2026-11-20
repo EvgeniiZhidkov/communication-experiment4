@@ -1,0 +1,261 @@
+{
+  "created_utc": "2026-11-20T18:52:29.551025+00:00",
+  "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "git_commit": "1d083117a09b65303bfdd8699c611979a8197b08",
+  "source_sha256": {
+    "__init__.py": "34b450f7f2bf78d75b220a262a9a382767123c3b88eae6262d6a404e3395362b",
+    "__main__.py": "d98f0d303ac7d9128a7d4c1787b25e1e0f310d30f07e2c5311c30a08516f9b52",
+    "analysis.py": "c4a706a996f889d961f1724054878ec618a1767e738b7224a4b12f3824cf2da4",
+    "backends.py": "bef5bdf9efd3ef2b9b7bfcae34d0129e604ba5804ec04a649214648be997f638",
+    "config.py": "06e1d69461b27cefdfb81a471e3716604096a964d3cd6c4bfeed3705f313bced",
+    "core.py": "84fb30c7a3c3b50bb345f66b64207e467fa023ae9ecc51ad22ce3b6a3874fbfb",
+    "experiment.py": "da04356aefecc4a0a286ef26420b0dc90e1bec30ba3d84972abf899fe34aba0c",
+    "legacy.py": "4abb1a367abe7d23c80336c0c1bd9385178a0362d01d6914c3211a64e84e29d3",
+    "logging.py": "8b940d29156a073b8ca3159cc02206b8dc84b4617133883ef5a323af110521b0",
+    "plotting.py": "673d46bdb13b2b0e8a732a5b84c0d19ba34570fac9603a3038f45d12285a3dbb",
+    "prompts.py": "1d3d6f4624446a339c71b9f9d4ab9a1c84efb63337e8d77d3d0a8bb6614f04b3",
+    "protocols.py": "bc1fd7867aedabb6c02fe3ad380ee1d2422008e47da01fbab5bed8a9edb24e90",
+    "python_tool.py": "aec0ceba9659141ce602f71f8d07b0f6cb5e8a2df0db5f30d0f14cc96c522a31",
+    "visualization.py": "c17d94a7575b37b6ebbe64da53c315dff26db34b52f087e3339e85247162db1d"
+  },
+  "schema_version": 2,
+  "mode": "episode",
+  "protocol": "specialized",
+  "implementation": "ip_zero",
+  "n": 5,
+  "function": "ip",
+  "channel": "zero",
+  "explanation": "prose",
+  "config": {
+    "protocol": "specialized",
+    "n": 5,
+    "experiment": "episode",
+    "alice": {
+      "backend": "codex",
+      "model": "gpt-6.2-sol",
+      "reasoning_effort": null,
+      "timeout_seconds": 120,
+      "allow_python": true
+    },
+    "bob": {
+      "backend": "codex",
+      "model": "gpt-6.2-sol",
+      "reasoning_effort": null,
+      "timeout_seconds": 120,
+      "allow_python": true
+    },
+    "task": "ip",
+    "channel": "zero",
+    "explanation": "prose",
+    "input_format": "bits",
+    "sampling": "uniform",
+    "case_limit": 32,
+    "case": null,
+    "seed": 43,
+    "repeats": 1,
+    "round_limit": null,
+    "output_dir": "runs",
+    "codex_executable": "codex",
+    "fsync": true,
+    "jobs": 4
+  },
+  "pairs": [
+    [
+      "00010",
+      "01110"
+    ],
+    [
+      "10010",
+      "01001"
+    ],
+    [
+      "01001",
+      "00110"
+    ],
+    [
+      "11101",
+      "10011"
+    ],
+    [
+      "10111",
+      "10101"
+    ],
+    [
+      "00110",
+      "00101"
+    ],
+    [
+      "11101",
+      "00000"
+    ],
+    [
+      "11111",
+      "11100"
+    ],
+    [
+      "00001",
+      "00111"
+    ],
+    [
+      "11011",
+      "10101"
+    ],
+    [
+      "10111",
+      "11010"
+    ],
+    [
+      "11011",
+      "11000"
+    ],
+    [
+      "11001",
+      "00110"
+    ],
+    [
+      "01011",
+      "01000"
+    ],
+    [
+      "00011",
+      "10110"
+    ],
+    [
+      "00110",
+      "11011"
+    ],
+    [
+      "00111",
+      "11111"
+    ],
+    [
+      "11000",
+      "00001"
+    ],
+    [
+      "01001",
+      "11010"
+    ],
+    [
+      "00110",
+      "00100"
+    ],
+    [
+      "01010",
+      "01000"
+    ],
+    [
+      "11111",
+      "10111"
+    ],
+    [
+      "01000",
+      "00111"
+    ],
+    [
+      "11000",
+      "11000"
+    ],
+    [
+      "10001",
+      "01100"
+    ],
+    [
+      "01011",
+      "10100"
+    ],
+    [
+      "11000",
+      "00011"
+    ],
+    [
+      "00100",
+      "00010"
+    ],
+    [
+      "00011",
+      "00100"
+    ],
+    [
+      "00011",
+      "11101"
+    ],
+    [
+      "01011",
+      "11110"
+    ],
+    [
+      "01010",
+      "10011"
+    ]
+  ],
+  "protocol_source": "https://eccc.weizmann.ac.il/report/2026/112/download/",
+  "protocol_bound": "4 + k + floor(3*k/4); k = ceil(n/2)",
+  "max_rounds": 9,
+  "tool_policy": {
+    "Alice": {
+      "allowed_tools": [
+        "local_python.python"
+      ],
+      "web_search": "disabled",
+      "command_network_access": false,
+      "shell": false,
+      "apps": false,
+      "plugins": false,
+      "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+      "disabled_features": [
+        "shell_tool",
+        "apps",
+        "plugins",
+        "browser_use",
+        "browser_use_external",
+        "browser_use_full_cdp_access",
+        "computer_use",
+        "image_generation",
+        "view_image",
+        "multi_agent",
+        "skill_search",
+        "hooks",
+        "memories",
+        "goals",
+        "tool_suggest"
+      ]
+    },
+    "Bob": {
+      "allowed_tools": [
+        "local_python.python"
+      ],
+      "web_search": "disabled",
+      "command_network_access": false,
+      "shell": false,
+      "apps": false,
+      "plugins": false,
+      "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+      "disabled_features": [
+        "shell_tool",
+        "apps",
+        "plugins",
+        "browser_use",
+        "browser_use_external",
+        "browser_use_full_cdp_access",
+        "computer_use",
+        "image_generation",
+        "view_image",
+        "multi_agent",
+        "skill_search",
+        "hooks",
+        "memories",
+        "goals",
+        "tool_suggest"
+      ]
+    }
+  },
+  "codex_version": "codex-cli 0.167.0",
+  "python_preflight": {
+    "python_ok": true,
+    "network_errno": 101,
+    "host_home_visible": false,
+    "cwd": "/work"
+  }
+}

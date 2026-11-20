@@ -1,0 +1,191 @@
+{
+  "created_utc": "2026-11-17T16:31:32.856807+00:00",
+  "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "git_commit": "d4ce50ee7df28b3ac461bc19b88e4761ca3d019a",
+  "source_sha256": {
+    "__init__.py": "a5c18dc43a88e4337e638771f70167501946781b3795f12ed0556b538e7ad4c7",
+    "__main__.py": "c53a4f91ae4b8581f165e9dae0dee2d13df3f42401f50af8be7e0da528c33bc9",
+    "analysis.py": "92627d4c33e7965be7770add64d668af9535e6ae0a419b0663c84336952e9cfb",
+    "backends.py": "21aec6f615422d3731b1cdb56942bb2ecc2f169c5666cbdb7bc75d02685f15ba",
+    "config.py": "83ba9c2d7076be82cd1f4b20b1fdd121e96d3eba7c213cee1f5c8ab6b78618aa",
+    "core.py": "84fb30c7a3c3b50bb345f66b64207e467fa023ae9ecc51ad22ce3b6a3874fbfb",
+    "experiment.py": "efb418ee6ad8d01641ab35df25040eccf21eeebb43be5747118e6732f3fe9f78",
+    "legacy.py": "4abb1a367abe7d23c80336c0c1bd9385178a0362d01d6914c3211a64e84e29d3",
+    "logging.py": "8b940d29156a073b8ca3159cc02206b8dc84b4617133883ef5a323af110521b0",
+    "plotting.py": "673d46bdb13b2b0e8a732a5b84c0d19ba34570fac9603a3038f45d12285a3dbb",
+    "prompts.py": "c518b50524173e1c1ae87a39d9ea69d490208e55f589ef9462e65e13af90f252",
+    "protocols.py": "b0e59d10966eeed71695d3fcfabda7eaf0007e34a720d1d3cf64fc1c0b7828ee",
+    "python_tool.py": "aec0ceba9659141ce602f71f8d07b0f6cb5e8a2df0db5f30d0f14cc96c522a31"
+  },
+  "schema_version": 2,
+  "mode": "episode",
+  "protocol": "specialized",
+  "implementation": "eq_silence",
+  "n": 4,
+  "function": "eq",
+  "channel": "silence",
+  "explanation": "prose",
+  "config": {
+    "protocol": "specialized",
+    "n": 4,
+    "experiment": "episode",
+    "alice": {
+      "backend": "codex",
+      "model": null,
+      "reasoning_effort": null,
+      "timeout_seconds": 120,
+      "allow_python": true
+    },
+    "bob": {
+      "backend": "codex",
+      "model": null,
+      "reasoning_effort": null,
+      "timeout_seconds": 120,
+      "allow_python": true
+    },
+    "task": "eq",
+    "channel": "silence",
+    "explanation": "prose",
+    "input_format": "bits",
+    "sampling": "uniform",
+    "case_limit": 15,
+    "case": null,
+    "seed": 42,
+    "repeats": 1,
+    "round_limit": null,
+    "output_dir": "runs",
+    "codex_executable": "codex",
+    "fsync": true
+  },
+  "pairs": [
+    [
+      "0011",
+      "1001"
+    ],
+    [
+      "0000",
+      "1100"
+    ],
+    [
+      "1000",
+      "1100"
+    ],
+    [
+      "0111",
+      "1101"
+    ],
+    [
+      "0111",
+      "0010"
+    ],
+    [
+      "0100",
+      "0111"
+    ],
+    [
+      "0011",
+      "0100"
+    ],
+    [
+      "0010",
+      "1100"
+    ],
+    [
+      "1101",
+      "1000"
+    ],
+    [
+      "0001",
+      "0000"
+    ],
+    [
+      "0000",
+      "1111"
+    ],
+    [
+      "0010",
+      "1111"
+    ],
+    [
+      "0110",
+      "1111"
+    ],
+    [
+      "0111",
+      "0111"
+    ],
+    [
+      "0000",
+      "1101"
+    ]
+  ],
+  "protocol_source": "https://eccc.weizmann.ac.il/report/2018/089/revision/2/download/",
+  "protocol_bound": "k + ceil(log_3(k+1)) + 2; k = ceil(n/log_2(5))",
+  "max_rounds": 5,
+  "tool_policy": {
+    "Alice": {
+      "allowed_tools": [
+        "local_python.python"
+      ],
+      "web_search": "disabled",
+      "command_network_access": false,
+      "shell": false,
+      "apps": false,
+      "plugins": false,
+      "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+      "disabled_features": [
+        "shell_tool",
+        "apps",
+        "plugins",
+        "browser_use",
+        "browser_use_external",
+        "browser_use_full_cdp_access",
+        "computer_use",
+        "image_generation",
+        "view_image",
+        "multi_agent",
+        "skill_search",
+        "hooks",
+        "memories",
+        "goals",
+        "tool_suggest"
+      ]
+    },
+    "Bob": {
+      "allowed_tools": [
+        "local_python.python"
+      ],
+      "web_search": "disabled",
+      "command_network_access": false,
+      "shell": false,
+      "apps": false,
+      "plugins": false,
+      "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+      "disabled_features": [
+        "shell_tool",
+        "apps",
+        "plugins",
+        "browser_use",
+        "browser_use_external",
+        "browser_use_full_cdp_access",
+        "computer_use",
+        "image_generation",
+        "view_image",
+        "multi_agent",
+        "skill_search",
+        "hooks",
+        "memories",
+        "goals",
+        "tool_suggest"
+      ]
+    }
+  },
+  "codex_version": "codex-cli 0.167.0",
+  "python_preflight": {
+    "python_ok": true,
+    "network_errno": 101,
+    "host_home_visible": false,
+    "cwd": "/work"
+  }
+}

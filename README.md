@@ -309,7 +309,7 @@ python3 -m halfduplex visualize runs/e4_.../journal.jsonl --episode 3 --output-d
 python3 -m halfduplex visualize runs/e4_.../report.jsonl --formats svg pdf --rounds-per-page 12
 
 # Поддерживаются и старые журналы из репозитория.
-python3 -m halfduplex visualize runs/experiment4_episode_20261109T221631_854494Z.jsonl --episode 1
+python3 -m halfduplex visualize runs/experiment4_episode_20261109T221631_854494Z/experiment4_episode_20261109T221631_854494Z.jsonl --episode 1
 ```
 
 Из Python или ноутбука:
@@ -346,7 +346,11 @@ print(exported.html_path)
 Для IP и EQ верны оба ответа в 15/15 эпизодов, и все 15 исполнений точные.
 Среднее число раундов составляет 4 для IP и 3,67 для EQ.
 
-Ранние прогоны IP, `n=3` и `n=5`, находятся в [runs/](runs/).
+Архив всех прогонов находится в [runs/](runs/). Каждый прогон лежит в своей
+папке. В архив входят журналы, отчёты, настройки, снимки кода и сводные графики,
+когда они есть. В [runs/ip_zero_boundary/](runs/ip_zero_boundary/) собраны
+четыре прогона для проверки границы точности IP в канале `zero`.
+Сырые логи CLI и экспорт диаграмм отдельных эпизодов хранятся локально.
 Версии пилотного ноутбука находятся в
 [archive/experiment4_7.ipynb](archive/experiment4_7.ipynb) и
 [archive/experiment4_7_pilot.ipynb](archive/experiment4_7_pilot.ipynb).

@@ -1,0 +1,137 @@
+{
+  "created_utc": "2026-11-11T15:05:13.371935+00:00",
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "git_commit": "ca2ffba13e09411518b47333d3da4b60cda3bae1",
+  "source_sha256": {
+    "__init__.py": "c1ed465fbfc2a094da6198236d0390419cf9858e356a5f6b02dccd799b0586a5",
+    "__main__.py": "70763d80c40b57f0fc6c5bf740fdf00d38ebbd76fa0b67f8c5b64d9095615d89",
+    "analysis.py": "11748dfe2096b4ef372d0f4311c8414ec2899c571d39a8c57c24675a783f1ac2",
+    "backends.py": "97655892c0f99af19260e9aea0e01b10838a1de836ae7c8f1540282a9ec0cdd4",
+    "config.py": "ce2f301eadb19880717cf61cca45fa6a21f65d671942496b310ed7ae1b37c426",
+    "core.py": "84fb30c7a3c3b50bb345f66b64207e467fa023ae9ecc51ad22ce3b6a3874fbfb",
+    "experiment.py": "9010391774b2ea84fad890bfb2128a0752957918ddfe0996fe4cd4c02e0bfcea",
+    "legacy.py": "4abb1a367abe7d23c80336c0c1bd9385178a0362d01d6914c3211a64e84e29d3",
+    "logging.py": "8b940d29156a073b8ca3159cc02206b8dc84b4617133883ef5a323af110521b0",
+    "plotting.py": "673d46bdb13b2b0e8a732a5b84c0d19ba34570fac9603a3038f45d12285a3dbb",
+    "prompts.py": "ace7a811cc494ecb59f62168b858444668068bae4129483c0f1f358c7e3dfb4a",
+    "protocols.py": "a797270d8fc8fefb87757b25a954f530e3b369a6abdb60093c293e4a993084c3",
+    "python_tool.py": "47a8a72e56004f5c0556960d091cf29c42be38b3be9950ab027a61ebd325dfa8"
+  },
+  "schema_version": 2,
+  "mode": "episode",
+  "protocol": "ip_silence",
+  "n": 2,
+  "function": "ip",
+  "channel": "silence",
+  "explanation": "prose",
+  "config": {
+    "protocol": "ip_silence",
+    "n": 2,
+    "experiment": "episode",
+    "alice": {
+      "backend": "codex",
+      "model": null,
+      "reasoning_effort": null,
+      "timeout_seconds": 120,
+      "allow_python": true
+    },
+    "bob": {
+      "backend": "codex",
+      "model": null,
+      "reasoning_effort": null,
+      "timeout_seconds": 120,
+      "allow_python": true
+    },
+    "task": "ip",
+    "channel": "silence",
+    "explanation": "prose",
+    "input_format": "bits",
+    "sampling": "uniform",
+    "case_limit": null,
+    "case": [
+      "01",
+      "11"
+    ],
+    "seed": 42,
+    "repeats": 1,
+    "round_limit": null,
+    "output_dir": "runs",
+    "codex_executable": "codex",
+    "fsync": true
+  },
+  "pairs": [
+    [
+      "01",
+      "11"
+    ]
+  ],
+  "protocol_source": "https://eccc.weizmann.ac.il/report/2026/112/download/",
+  "protocol_bound": "ceil(n/2) + 2",
+  "max_rounds": 3,
+  "tool_policy": {
+    "Alice": {
+      "allowed_tools": [
+        "local_python.python"
+      ],
+      "web_search": "disabled",
+      "command_network_access": false,
+      "shell": false,
+      "apps": false,
+      "plugins": false,
+      "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+      "disabled_features": [
+        "shell_tool",
+        "apps",
+        "plugins",
+        "browser_use",
+        "browser_use_external",
+        "browser_use_full_cdp_access",
+        "computer_use",
+        "image_generation",
+        "view_image",
+        "multi_agent",
+        "skill_search",
+        "hooks",
+        "memories",
+        "goals",
+        "tool_suggest"
+      ]
+    },
+    "Bob": {
+      "allowed_tools": [
+        "local_python.python"
+      ],
+      "web_search": "disabled",
+      "command_network_access": false,
+      "shell": false,
+      "apps": false,
+      "plugins": false,
+      "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+      "disabled_features": [
+        "shell_tool",
+        "apps",
+        "plugins",
+        "browser_use",
+        "browser_use_external",
+        "browser_use_full_cdp_access",
+        "computer_use",
+        "image_generation",
+        "view_image",
+        "multi_agent",
+        "skill_search",
+        "hooks",
+        "memories",
+        "goals",
+        "tool_suggest"
+      ]
+    }
+  },
+  "codex_version": "codex-cli 0.167.0",
+  "python_preflight": {
+    "python_ok": true,
+    "network_errno": 101,
+    "host_home_visible": false,
+    "cwd": "/work"
+  }
+}

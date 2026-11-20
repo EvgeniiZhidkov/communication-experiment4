@@ -1,0 +1,41 @@
+{
+  "joint_accuracy": {
+    "count": 0,
+    "total": 0,
+    "rate": null
+  },
+  "exact_execution": {
+    "count": 0,
+    "total": 0,
+    "rate": null
+  },
+  "wrong_output_given_matching_actions": {
+    "count": 0,
+    "total": 0,
+    "rate": null
+  },
+  "output_failure_given_matching_actions": {
+    "count": 0,
+    "total": 0,
+    "rate": null
+  },
+  "mean_rounds": null,
+  "max_observed_rounds": null,
+  "reference_max_rounds": 18,
+  "round_delta_counts": {},
+  "first_errors": {},
+  "by_class": {
+    "0": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    },
+    "1": {
+      "count": 0,
+      "total": 0,
+      "rate": null
+    }
+  },
+  "timed_out_episodes": 3,
+  "run_complete": false
+}

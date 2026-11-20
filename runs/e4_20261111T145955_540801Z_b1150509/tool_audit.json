@@ -1,0 +1,92 @@
+{
+  "passed": true,
+  "reply": "AUDIT_OK",
+  "tools": [
+    {
+      "type": "tool.observed",
+      "time_utc": "2026-11-11T15:00:09.587112+00:00",
+      "call_id": "alice_57562a4874e14b06ae5f5ced4452f5d7",
+      "role": "Alice",
+      "tool": "local_python.python",
+      "allowed": true,
+      "status": "in_progress"
+    },
+    {
+      "type": "tool.observed",
+      "time_utc": "2026-11-11T15:00:09.630974+00:00",
+      "call_id": "alice_57562a4874e14b06ae5f5ced4452f5d7",
+      "role": "Alice",
+      "tool": "local_python.python",
+      "allowed": true,
+      "status": "completed"
+    }
+  ],
+  "python_preflight": {
+    "python_ok": true,
+    "network_errno": 101,
+    "host_home_visible": false,
+    "cwd": "/work"
+  },
+  "python_results": [
+    {
+      "type": "python.completed",
+      "time_utc": "2026-11-11T15:00:09.625967+00:00",
+      "request_id": 2,
+      "returncode": 0,
+      "timed_out": false,
+      "stdout": "42\nFalse\n101\n",
+      "stderr": "",
+      "output_truncated": false
+    }
+  ],
+  "directory": "/home/jone/expiremtn/runs/e4_20261111T145955_540801Z_b1150509",
+  "policy": {
+    "allowed_tools": [
+      "local_python.python"
+    ],
+    "web_search": "disabled",
+    "command_network_access": false,
+    "shell": false,
+    "apps": false,
+    "plugins": false,
+    "python_isolation": "bubblewrap --unshare-all; fresh filesystem; no host /home",
+    "disabled_features": [
+      "shell_tool",
+      "apps",
+      "plugins",
+      "browser_use",
+      "browser_use_external",
+      "browser_use_full_cdp_access",
+      "computer_use",
+      "image_generation",
+      "view_image",
+      "multi_agent",
+      "skill_search",
+      "hooks",
+      "memories",
+      "goals",
+      "tool_suggest"
+    ]
+  },
+  "source": {
+    "created_utc": "2026-11-11T15:00:17.987003+00:00",
+    "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "git_commit": "ca2ffba13e09411518b47333d3da4b60cda3bae1",
+    "source_sha256": {
+      "__init__.py": "c1ed465fbfc2a094da6198236d0390419cf9858e356a5f6b02dccd799b0586a5",
+      "__main__.py": "70763d80c40b57f0fc6c5bf740fdf00d38ebbd76fa0b67f8c5b64d9095615d89",
+      "analysis.py": "11748dfe2096b4ef372d0f4311c8414ec2899c571d39a8c57c24675a783f1ac2",
+      "backends.py": "97655892c0f99af19260e9aea0e01b10838a1de836ae7c8f1540282a9ec0cdd4",
+      "config.py": "ce2f301eadb19880717cf61cca45fa6a21f65d671942496b310ed7ae1b37c426",
+      "core.py": "84fb30c7a3c3b50bb345f66b64207e467fa023ae9ecc51ad22ce3b6a3874fbfb",
+      "experiment.py": "9010391774b2ea84fad890bfb2128a0752957918ddfe0996fe4cd4c02e0bfcea",
+      "legacy.py": "4abb1a367abe7d23c80336c0c1bd9385178a0362d01d6914c3211a64e84e29d3",
+      "logging.py": "8b940d29156a073b8ca3159cc02206b8dc84b4617133883ef5a323af110521b0",
+      "plotting.py": "673d46bdb13b2b0e8a732a5b84c0d19ba34570fac9603a3038f45d12285a3dbb",
+      "prompts.py": "ace7a811cc494ecb59f62168b858444668068bae4129483c0f1f358c7e3dfb4a",
+      "protocols.py": "a797270d8fc8fefb87757b25a954f530e3b369a6abdb60093c293e4a993084c3",
+      "python_tool.py": "47a8a72e56004f5c0556960d091cf29c42be38b3be9950ab027a61ebd325dfa8"
+    }
+  }
+}

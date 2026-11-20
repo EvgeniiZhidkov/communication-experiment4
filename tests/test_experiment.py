@@ -79,8 +79,9 @@ class ExperimentTests(unittest.TestCase):
 
     def test_legacy_journal_metrics_still_match(self):
         root = Path(__file__).resolve().parents[1]
-        path = root / "runs" / "experiment4_episode_20261109T221631_854494Z.jsonl"
-        report = root / "runs" / "experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
+        run = root / "runs" / "experiment4_episode_20261109T221631_854494Z"
+        path = run / "experiment4_episode_20261109T221631_854494Z.jsonl"
+        report = run / "experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
         if not path.is_file():
             self.skipTest("Historical local result not present")
         with path.open() as stream:
