@@ -6,32 +6,34 @@
   <title>E4 · Протокол обмена</title>
   <style>
     :root{color-scheme:light;--ink:#172b3a;--muted:#647580;--line:#dce2df;--paper:#f4f3ee;--teal:#147d83;--red:#b63838}
-    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
     header{background:var(--ink);color:#fff;padding:28px max(24px,calc((100vw - 1420px)/2));border-bottom:4px solid #95c5ba}
     .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a7ccc7}h1{font-size:30px;line-height:1.2;font-weight:600;margin:9px 0}
     header p{margin:0;color:#c5d4d9;font-size:14px}main{max-width:1468px;margin:auto;padding:26px 24px 50px}
     .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.stat{padding:17px 20px;background:white;border:1px solid var(--line);border-radius:8px}
     .stat b{display:block;font-size:25px;font-weight:600;line-height:1.2;margin-bottom:5px}.stat span{font-size:12px;color:var(--muted)}
     .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:18px;background:white;border:1px solid var(--line);border-radius:8px}
-    label{display:block;font-size:12px;color:var(--muted)}label>select,label>input[type=search]{display:block;margin-top:5px}select,input,button,.download{font:inherit;border:1px solid #c5d0d1;border-radius:5px;background:#fff;color:var(--ink);padding:8px 11px;min-height:41px}
+    label{display:block;font-size:14px;color:var(--muted)}label>select,label>input[type=search]{display:block;margin-top:5px}select,input,button,.download{font:inherit;border:1px solid #c5d0d1;border-radius:5px;background:#fff;color:var(--ink);padding:8px 11px;min-height:41px}
     select:focus,input:focus,button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #88bfbb;outline-offset:2px}
     input[type=checkbox]{min-height:auto;accent-color:var(--teal)}input[type=search]{width:180px}input[type=range]{display:block;width:130px;padding:0;accent-color:var(--teal)}#episode{min-width:330px;max-width:100%}
     button,.download{cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}button:hover,.download:hover{background:#eef5f3;border-color:#96b4ae}
     button:disabled{opacity:.38;cursor:default}.toggle{padding-bottom:10px;color:var(--ink);white-space:nowrap}.grow{flex:1}
     .notice{border-left:3px solid #ae6b16;padding:10px 14px;background:#fbf4e6;font-size:13px;margin:15px 0}.case{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:25px 0 14px}
     h2{font-size:20px;font-weight:600;margin:0}.badge{font-size:12px;padding:4px 9px;border-radius:4px;background:#e1efea;color:#286b54}.badge.bad{background:#f8e6e4;color:var(--red)}
-    .diagrams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.diagrams.single{grid-template-columns:minmax(0,1fr);max-width:900px;margin:auto}
-    .card{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}.card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600}
-    .card-head span{font-size:12px;font-weight:400;color:var(--muted)}.svg-wrap{overflow:auto;padding:8px}.svg-wrap svg{display:block;width:100%;height:auto;min-width:460px}
+    .diagrams{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;max-width:1120px;margin-inline:auto}
+    .diagrams.side-by-side{--diagram-min-width:42rem;grid-template-columns:repeat(2,minmax(43.25rem,1fr));max-width:none;overflow-x:auto}
+    .card{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 18px;border-bottom:1px solid var(--line);font-size:16px;font-weight:600}
+    .card-head span{font-size:14px;font-weight:400;color:var(--muted)}.svg-wrap{overflow:auto;padding:8px}
+    .svg-wrap svg{display:block;width:calc(100% * var(--diagram-scale,1));height:auto;min-width:calc(var(--diagram-min-width,52rem) * var(--diagram-scale,1))}
     .explanation{font-size:13px;color:var(--muted);margin:13px 0 23px}.explanation strong{color:var(--ink);font-weight:500}
     .exports{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 24px;font-size:13px}.exports .download{min-height:35px;padding:5px 12px}.exports select{min-height:35px;padding:5px 10px}
     details{background:white;border:1px solid var(--line);border-radius:7px;margin-top:14px}summary{padding:14px 18px;cursor:pointer;font-weight:500;font-size:14px}
-    .table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:10px 13px;border-top:1px solid #e5eae8;vertical-align:top}th{color:var(--muted);font-weight:500;background:#fafbf9}
+    .table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:10px 13px;border-top:1px solid #e5eae8;vertical-align:top}th{color:var(--muted);font-weight:500;background:#fafbf9}
     tr.deviation td{background:#fff4e8}td code{font-size:11px;white-space:nowrap}.small{font-size:11px;color:var(--muted)}pre{margin:0;padding:18px;overflow:auto;font-size:12px;max-height:470px;white-space:pre-wrap;overflow-wrap:anywhere}
     .empty{padding:45px 20px;text-align:center;color:var(--muted)}.hidden,[hidden]{display:none!important}footer{margin-top:24px;color:var(--muted);font-size:12px}
-    @media(max-width:900px){.diagrams{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}#episode{min-width:240px}h1{font-size:25px}}
-    @media(max-width:520px){main{padding:18px 12px}.toolbar{padding:12px}#episode{min-width:0;width:100%}.episode-control{width:100%}.stat{padding:13px}.svg-wrap svg{min-width:440px}}
-    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p,.eyebrow{color:var(--muted)}main{padding:12px}.toolbar,.summary,.exports,details,footer{display:none}.diagrams{display:block}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
+    @media(max-width:900px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}#episode{min-width:240px}h1{font-size:25px}}
+    @media(max-width:520px){main{padding:18px 12px}.toolbar{padding:12px}#episode{min-width:0;width:100%}.episode-control{width:100%}.stat{padding:13px}.card-head{flex-wrap:wrap}}
+    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p,.eyebrow{color:var(--muted)}main{padding:12px}.toolbar,.summary,.exports,details,footer{display:none}.diagrams,.diagrams.side-by-side{display:block;overflow:visible}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{width:100%;min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
   </style>
 </head>
 <body>
@@ -56,6 +58,7 @@
     <label>Страница<select id="page"></select></label>
     <label>Масштаб <output id="zoom-value">100%</output><input type="range" id="zoom" min="70" max="200" step="10" value="100" aria-label="Масштаб диаграмм"></label>
     <label class="toggle"><input type="checkbox" id="reference" checked> Показать эталон</label>
+    <label>Расположение<select id="diagram-layout"><option value="stacked">Друг под другом</option><option value="side-by-side">Рядом</option></select></label>
   </div>
   <div id="empty" class="empty" hidden>Нет игр, соответствующих фильтру.</div>
   <section id="content">
@@ -110,16 +113,26 @@ function chooseEpisode() {
   $("raw-json").textContent=JSON.stringify(current.record,null,2);
   renderPage();
 }
+function updateDiagramLayout() {
+  const show = $("reference").checked;
+  $("reference-card").hidden = !show;
+  $("diagram-layout").disabled = !show;
+  $("diagrams").classList.toggle("side-by-side", show && $("diagram-layout").value === "side-by-side");
+}
+function updateDiagramScale() {
+  const zoom = $("zoom").value;
+  $("zoom-value").textContent = zoom + "%";
+  $("diagrams").style.setProperty("--diagram-scale", Number(zoom) / 100);
+}
 function renderPage() {
   if(!current)return;
   const page=Number($("page").value);
   for(const kind of ["actual","reference"]){
     const box=$(kind+"-diagram"), item=current[kind].pages[page];
     box.replaceChildren();
-    if(item){box.innerHTML=item.svg;const svg=box.querySelector("svg");svg.setAttribute("role","img");svg.setAttribute("aria-label",`${kind} · игра ${current.number} · страница ${page+1}`);svg.style.width=$("zoom").value+"%";}
+    if(item){box.innerHTML=item.svg;const svg=box.querySelector("svg");svg.setAttribute("role","img");svg.setAttribute("aria-label",`${kind} · игра ${current.number} · страница ${page+1}`);}
     else{const p=document.createElement("p");p.className="empty";p.textContent="Обмен завершён на предыдущей странице.";box.append(p);}
   }
-  const show=$("reference").checked;$("reference-card").hidden=!show;$("diagrams").classList.toggle("single",!show);
   const body=$("round-table");body.replaceChildren();
   const perPage=data.rounds_per_page;
   const selected=current.actual.rows.slice(page*perPage,(page+1)*perPage);
@@ -145,9 +158,11 @@ function refreshDownloads(){
 }
 $("download-svg").addEventListener("click",()=>{const kind=$("export-kind").value,page=Number($("page").value),entry=current[kind].pages[page];if(!entry)return;const url=URL.createObjectURL(new Blob([entry.svg],{type:"image/svg+xml;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download=`episode_${String(current.number).padStart(4,"0")}_${kind}_p${page+1}.svg`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 $("filter").addEventListener("change",refreshList);$("search").addEventListener("input",refreshList);$("episode").addEventListener("change",chooseEpisode);
-$("page").addEventListener("change",renderPage);$("reference").addEventListener("change",renderPage);$("export-kind").addEventListener("change",refreshDownloads);
-$("zoom").addEventListener("input",()=>{$("zoom-value").textContent=$("zoom").value+"%";document.querySelectorAll(".svg-wrap svg").forEach(svg=>svg.style.width=$("zoom").value+"%");});
+$("page").addEventListener("change",renderPage);$("reference").addEventListener("change",updateDiagramLayout);$("diagram-layout").addEventListener("change",updateDiagramLayout);$("export-kind").addEventListener("change",refreshDownloads);
+$("zoom").addEventListener("input",updateDiagramScale);
 for(const [id,direction] of [["previous",-1],["next",1]])$(id).addEventListener("click",()=>{const i=visible.indexOf(current)+direction;if(i>=0&&i<visible.length){$("episode").value=String(visible[i].number);chooseEpisode();}});
+updateDiagramLayout();
+updateDiagramScale();
 refreshList();
 </script>
 </body>

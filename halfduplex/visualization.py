@@ -202,23 +202,23 @@ def draw_protocol(data: dict, episode: dict, *, reference: bool = False, page: i
     ax.axis("off")
     ink, muted, teal, purple, red, amber = "#172b3a", "#647580", "#147d83", "#775aa0", "#b63838", "#ae6b16"
     title = f"{data['task'].upper()} · n = {data['n']} · {data['implementation']} · {data['channel']}"
-    ax.text(.2, top - .08, title, fontsize=12, fontweight="bold", color=ink, va="top")
+    ax.text(.2, top - .08, title, fontsize=15, fontweight="bold", color=ink, va="top")
     subtitle = f"Episode {episode['number']} · {'Reference' if reference else 'Observed'} · repeat {episode['repeat']}"
     if pages > 1:
         subtitle += f" · page {page + 1}/{pages}"
-    ax.text(.2, top - .48, subtitle, fontsize=9, color=muted, va="top")
-    ax.text(9.8, top - .48, f"f(x, y) = {episode['truth']}", fontsize=10, color=ink, ha="right", va="top")
+    ax.text(.2, top - .48, subtitle, fontsize=12, color=muted, va="top")
+    ax.text(9.8, top - .48, f"f(x, y) = {episode['truth']}", fontsize=13, color=ink, ha="right", va="top")
     columns = {ALICE: 2.05, BOB: 7.95}
     first_y = slots - .34
     for role, x in columns.items():
-        ax.text(x, top - 1.0, role, ha="center", fontsize=12, fontweight="bold", color=ink)
+        ax.text(x, top - 1.0, role, ha="center", fontsize=16, fontweight="bold", color=ink)
         bits = _short(trace["inputs"][role], 38)
         ax.text(x, top - 1.35, f"{'x' if role == ALICE else 'y'} = {bits}", ha="center",
-                fontsize=9, fontfamily="monospace", color=ink)
+                fontsize=11, fontfamily="monospace", color=ink)
         if data["implementation"] != "send_x_then_result":
             encoding = {"eq_silence": "base 5", "eq_zero": "base 3"}.get(data["implementation"], "pairs")
             encoded = _short(" ".join(trace["units"][role]), 43)
-            ax.text(x, top - 1.67, f"{encoding}: {encoded}", ha="center", fontsize=8, color=muted)
+            ax.text(x, top - 1.67, f"{encoding}: {encoded}", ha="center", fontsize=10.5, color=muted)
         ax.plot([x, x], [.62, first_y + .2], color="#ccd5da", linewidth=1, zorder=0)
 
     def border(role, index, token, *, terminal=False):
@@ -234,24 +234,24 @@ def draw_protocol(data: dict, episode: dict, *, reference: bool = False, page: i
         ax.add_patch(FancyBboxPatch((x - 1.22, y - .35), 2.44, .70,
                                    boxstyle="round,pad=0.035,rounding_size=0.06",
                                    facecolor=fill, edgecolor=edge, linewidth=1.5, zorder=3))
-        ax.text(x, y + .08, _short(token, 22), ha="center", va="center", fontsize=9.2,
+        ax.text(x, y + .08, _short(token, 22), ha="center", va="center", fontsize=13,
                 fontfamily="monospace", color=ink, zorder=4, parse_math=False)
         if terminal:
-            detail = "local decision · not transmitted"
+            detail = "local decision"
         else:
             detail = f"obs: {'—' if observation is None else observation}"
             if unit:
                 detail += f" · unit: {unit}"
-        ax.text(x, y - .17, detail, ha="center", va="center", fontsize=7.6, color=muted, zorder=4)
+        ax.text(x, y - .17, detail, ha="center", va="center", fontsize=11, color=muted, zorder=4)
 
     def arrow(x1, x2, y, label, color=teal):
         ax.add_patch(FancyArrowPatch((x1, y), (x2, y), arrowstyle="-|>", mutation_scale=11,
                                     linewidth=1.7, color=color, zorder=2))
-        ax.text((x1 + x2) / 2, y + .12, label, ha="center", fontsize=9.5, color=color)
+        ax.text((x1 + x2) / 2, y + .12, label, ha="center", fontsize=12, color=color)
 
     for offset, row in enumerate(rows):
         y, index = first_y - offset, row["index"]
-        ax.text(.20, y + .04, str(index), fontsize=9, color=muted, ha="center")
+        ax.text(.20, y + .04, str(index), fontsize=11, color=muted, ha="center")
         for role in columns:
             node(role, y, row["actions"][role], row["observations"][role], index, row["units"][role])
         kind = row["kind"]
@@ -267,25 +267,25 @@ def draw_protocol(data: dict, episode: dict, *, reference: bool = False, page: i
         else:
             ax.plot([3.38, 6.62], [y + .04, y + .04], color="#aab7bf", linestyle=(0, (3, 4)), linewidth=1)
             label = "SILENCE" if data["channel"] == "silence" else "0 / 0"
-            ax.text(5, y + .10, label, ha="center", fontsize=9, color=muted,
+            ax.text(5, y + .10, label, ha="center", fontsize=11, color=muted,
                     bbox={"facecolor": "white", "edgecolor": "none", "pad": 2})
         exchange = "collision · bits lost" if kind == "collision" else "both listen" if kind == "silence" else "delivered"
-        ax.text(5, y - .24, exchange, ha="center", fontsize=7.4, color=purple if kind == "collision" else muted)
+        ax.text(5, y - .24, exchange, ha="center", fontsize=10.5, color=purple if kind == "collision" else muted)
         phase_lines = textwrap.fill(row["phase"], 40)
-        ax.text(5, y - .48, phase_lines, ha="center", va="top", fontsize=7.2, color=muted)
+        ax.text(5, y - .48, phase_lines, ha="center", va="top", fontsize=10.5, color=muted)
     if is_last:
         y = first_y - len(rows)
         index = len(trace["rows"]) + 1
         for role in columns:
             node(role, y, (trace["final"] or {}).get(role, "NO ANSWER"), None, index, terminal=True)
-        ax.text(5, y + .06, "STOP", ha="center", fontsize=9, fontweight="bold", color=ink)
-        ax.text(5, y - .20, _short(trace["status"], 30), ha="center", fontsize=7.4, color=muted)
+        ax.text(5, y + .06, "STOP", ha="center", fontsize=12, fontweight="bold", color=ink)
+        ax.text(5, y - .20, _short(trace["status"], 30), ha="center", fontsize=10.5, color=muted)
     else:
-        ax.text(5, .42, "Continued on the next page", ha="center", fontsize=8, color=muted)
+        ax.text(5, .42, "Continued on the next page", ha="center", fontsize=10.5, color=muted)
     ax.text(.22, -.04, "→ delivered bit     × collision     - - both listen     obs: — = no observation",
-            fontsize=7.5, color=muted)
+            fontsize=10.5, color=muted)
     ax.text(.22, -.29, "Red border: local error / wrong answer. Amber: deviation from reference. A collision can be valid.",
-            fontsize=7.2, color=muted)
+            fontsize=10, color=muted)
     return fig
 
 
