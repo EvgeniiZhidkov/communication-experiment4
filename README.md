@@ -215,7 +215,7 @@ python3 -m pip install -r requirements-plots.txt
 python3 site/build_site.py
 ```
 
-Откройте `dist/index.html` в браузере. GitHub Actions публикует эту же сборку.
+Откройте `site/dist/index.html` в браузере. GitHub Actions публикует эту же сборку.
 
 Каждый запуск создаёт отдельный каталог `runs/e4_.../`:
 
@@ -275,7 +275,7 @@ python3 -m halfduplex visualize runs/e4_.../journal.jsonl --episode 3 --output-d
 python3 -m halfduplex visualize runs/e4_.../report.jsonl --formats svg pdf --rounds-per-page 12
 
 # Поддерживаются и старые журналы из репозитория.
-python3 -m halfduplex visualize results/experiment4_episode_20261109T221631_854494Z.jsonl --episode 1
+python3 -m halfduplex visualize runs/experiment4_episode_20261109T221631_854494Z.jsonl --episode 1
 ```
 
 Из Python или ноутбука:
@@ -307,11 +307,12 @@ print(exported.html_path)
 Ноутбуки, CLI и графики также проверены. Перебор подтверждает конечные размеры;
 основания корректности для произвольного `n` даны в статьях.
 
-Исторические журналы, отчёты и графики лежат в [results/](results/), графики
-названы по соответствующему прогону. Более ранний прогон — IP, `n=3`, Python–Codex.
-Сохранённый пилот: IP, `n=5`, `baseline`, Codex–Codex — 15/15 правильных ответов
-и точных исполнений, по 6 раундов. Отдельный реальный пробный запуск IP, `n=2`,
-`specialized` завершился точно за 3 раунда. Точность LLM для новых EQ пока не измерена.
-Старые журналы поддерживаются; версии пилотного ноутбука находятся в
+В [results/](results/) лежат два прогона Codex–Codex от 17 ноября 2026 года.
+Оба используют специализированный протокол при `n=4` и канале `silence`.
+Для IP и EQ верны оба ответа в 15/15 эпизодов, и все 15 исполнений точные.
+Среднее число раундов составляет 4 для IP и 3,67 для EQ.
+
+Ранние прогоны IP, `n=3` и `n=5`, находятся в [runs/](runs/).
+Версии пилотного ноутбука находятся в
 [archive/experiment4_7.ipynb](archive/experiment4_7.ipynb) и
 [archive/experiment4_7_pilot.ipynb](archive/experiment4_7_pilot.ipynb).

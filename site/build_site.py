@@ -13,32 +13,32 @@ sys.path.insert(0, str(ROOT))
 from halfduplex import export_protocols, load_protocol_log
 
 
-# Only journals already published in the repository belong on the dashboard.
 RUNS = (
-    ("ip-n3", "Python–Codex", "experiment4_episode_20261108T144728_691905Z"),
-    ("ip-n5", "Codex–Codex", "experiment4_episode_20261109T221631_854494Z"),
+    ("ip-n4", "e4_20261117T152217_079029Z_7144d9f1"),
+    ("eq-n4", "e4_20261117T163132_834171Z_ab15fbd6"),
 )
 
 
-def render_run(output, slug, players, stem):
-    source = ROOT / "results" / f"{stem}.jsonl"
+def render_run(output, slug, run_id):
+    result = ROOT / "results" / run_id
+    source = result / "journal.jsonl"
     view = output / "protocols" / slug
     run = load_protocol_log(source)
     export_protocols(source, output_dir=view)
     shutil.copyfile(source, view / "journal.jsonl")
-    shutil.copyfile(source.with_name(f"{stem}_plots.png"), view / "results.png")
+    shutil.copyfile(result / "plots.png", view / "results.png")
 
     title = f"{run['task'].upper()} · n={run['n']}"
     summary = run["summary"]
     joint = summary["joint_accuracy"]
     exact = summary["exact_execution"]
-    rounds = f"{summary['mean_rounds']:g}".replace(".", ",")
+    rounds = f"{summary['mean_rounds']:.2f}".rstrip("0").rstrip(".").replace(".", ",")
     url = f"protocols/{slug}/"
     return f"""
       <article class="run" aria-labelledby="{slug}">
         <header class="run-header">
           <h3 id="{slug}">{escape(title)}</h3>
-          <p>{escape(players)} · канал <code>{escape(run['channel'])}</code></p>
+          <p>Codex–Codex · <code>{escape(run['implementation'])}</code></p>
         </header>
         <dl class="metrics">
           <div><dt>Оба ответа верны</dt><dd>{joint['count']}/{joint['total']}</dd></div>
@@ -46,7 +46,7 @@ def render_run(output, slug, players, stem):
           <div><dt>Раундов в среднем</dt><dd>{rounds}</dd></div>
         </dl>
         <a class="plot" href="{url}results.png">
-          <img src="{url}results.png" alt="Графики точности и числа раундов для {escape(title)}" width="1890" height="810" loading="lazy">
+          <img src="{url}results.png" alt="Графики точности и локальных ошибок для {escape(title)}" width="1980" height="810" loading="lazy">
         </a>
         <div class="run-links">
           <a class="button" href="{url}">Разобрать раунды</a>
@@ -57,10 +57,10 @@ def render_run(output, slug, players, stem):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "dist")
+    parser.add_argument("--output", type=Path, default=SITE / "dist")
     output = parser.parse_args().output.resolve()
-    if ROOT.is_relative_to(output) or output.is_relative_to(SITE):
-        parser.error("--output must be a separate directory")
+    if SITE.is_relative_to(output):
+        parser.error("--output must not overwrite the site source")
     output.mkdir(parents=True, exist_ok=True)
 
     run_cards = "\n".join(render_run(output, *run) for run in RUNS)

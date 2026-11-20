@@ -40,7 +40,7 @@ jobs:
           MPLBACKEND: Agg
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: site/dist
 
   deploy:
     needs: build

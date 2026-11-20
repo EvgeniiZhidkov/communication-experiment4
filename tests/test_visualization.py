@@ -97,8 +97,8 @@ class VisualizationTests(unittest.TestCase):
 
     def test_old_journals_and_reports_are_supported(self):
         root = Path(__file__).resolve().parents[1]
-        journal = root / "results/experiment4_episode_20261109T221631_854494Z.jsonl"
-        report = root / "results/experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
+        journal = root / "runs/experiment4_episode_20261109T221631_854494Z.jsonl"
+        report = root / "runs/experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
         if not journal.exists():
             self.skipTest("Historical result not present")
         original, rescored = load_protocol_log(journal), load_protocol_log(report)
