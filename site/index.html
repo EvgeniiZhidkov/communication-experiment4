@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Результаты эксперимента E4 и интерактивный разбор полудуплексных протоколов по раундам.">
+  <meta name="theme-color" content="#142d3b">
+  <title>E4 · Исполнение полудуплексных протоколов</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <nav class="topbar" aria-label="Навигация">
+        <a class="brand" href="./">E4 <span>Эксперимент</span></a>
+        <div class="nav-links">
+          <a href="#results">Результаты</a>
+          <a href="#method">Методика</a>
+          <a href="https://github.com/EvgeniiZhidkov/communication-experiment4">GitHub</a>
+        </div>
+      </nav>
+      <div class="intro">
+        <h1>Исполнение <em>полудуплексных протоколов</em></h1>
+        <p>Алиса и Боб видят только свои битовые строки и общаются по одному каналу. Эксперимент проверяет, смогут ли языковые модели следовать объяснённому алгоритму и получить верный ответ.</p>
+        <a class="button" href="#results">Открыть результаты</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="wrap results" id="results" aria-labelledby="results-title">
+      <h2 id="results-title">Сохранённые прогоны</h2>
+      <p class="section-note">Скалярное произведение по модулю 2, базовый протокол. В просмотре каждого прогона можно сравнить действия и наблюдения с программным эталоном на тех же входах.</p>
+      <div class="run-grid">
+        <!-- RUN_CARDS -->
+      </div>
+    </section>
+
+    <section class="method" id="method" aria-labelledby="method-title">
+      <div class="wrap method-grid">
+        <div>
+          <h2 id="method-title">Как устроен эксперимент</h2>
+          <p>В каждом раунде оба игрока решают, отправить бит или слушать. Передача срабатывает, когда один отправляет, а другой слушает. При двух отправках биты теряются. В канале <code>silence</code> при взаимном слушании оба получают символ тишины.</p>
+          <div class="method-links">
+            <a href="project.html">Постановка проекта</a>
+            <a href="https://github.com/EvgeniiZhidkov/communication-experiment4/blob/main/reproduction.ipynb">Ноутбук воспроизведения</a>
+          </div>
+        </div>
+        <dl class="definitions">
+          <div><dt>Оба ответа верны</dt><dd>Алиса и Боб независимо выдали правильный итоговый бит.</dd></div>
+          <div><dt>Точное исполнение</dt><dd>Действия и ответы совпали с программным эталоном.</dd></div>
+          <div><dt>Число раундов</dt><dd>Учитываются раунды связи. Итоговые ответы выдаются локально.</dd></div>
+        </dl>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

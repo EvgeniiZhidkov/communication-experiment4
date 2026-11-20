@@ -1,5 +1,7 @@
 # E4 · Исполнение полудуплексных протоколов
 
+**[Открыть сайт с результатами и диаграммами протоколов](https://evgeniizhidkov.github.io/communication-experiment4/)**
+
 Основной ноутбук — [reproduction.ipynb](reproduction.ipynb). В нём описан эксперимент,
 выбираются настройки, показываются входы и промпт, запускаются проверки и строятся графики.
 Вычисления и работа с моделями находятся в пакете `halfduplex`.
@@ -204,6 +206,16 @@ python3 -m halfduplex run --config configs/eq_zero.json --python-players
 выбирает программных игроков. Отдельный аудит инструмента: `python3 -m halfduplex audit-tools`.
 
 ## Результаты и проверки
+
+Сайт GitHub Pages собирает сохранённые прогоны из `results/` и показывает
+фактический обмен рядом с эталоном. Для локального просмотра:
+
+```bash
+python3 -m pip install -r requirements-plots.txt
+python3 site/build_site.py
+```
+
+Откройте `dist/index.html` в браузере. GitHub Actions публикует эту же сборку.
 
 Каждый запуск создаёт отдельный каталог `runs/e4_.../`:
 
