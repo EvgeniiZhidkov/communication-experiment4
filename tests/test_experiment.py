@@ -5,9 +5,12 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from threading import Event
+from unittest.mock import patch
 
 from halfduplex import PlayerConfig, RunConfig, analyze_file, analyze_run, input_pairs, run_experiment
 from halfduplex.core import View
+from halfduplex.experiment import _run_episode
 from halfduplex.prompts import render_prompt
 
 
@@ -23,6 +26,8 @@ class ExperimentTests(unittest.TestCase):
     def test_all_protocols_both_modes_and_report_reanalysis(self):
         with tempfile.TemporaryDirectory() as directory:
             cases = (("specialized", "ip", "silence", "ip_silence"),
+                     ("specialized", "ip", "zero", "ip_zero"),
+                     ("specialized", "disj", "zero", "disj_zero"),
                      ("specialized", "eq", "silence", "eq_silence"),
                      ("specialized", "eq", "zero", "eq_zero"),
                      ("baseline", "eq", "zero", "send_x_then_result"))
@@ -84,6 +89,49 @@ class ExperimentTests(unittest.TestCase):
         saved.pop("type")
         self.assertEqual(json.loads(json.dumps(actual)), saved)
 
+    def test_parallel_and_serial_runs_produce_the_same_episodes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = self.config(directory, task="ip", channel="zero", n=32, case_limit=8, repeats=2)
+            serial = self.run_quietly(config)
+            parallel = self.run_quietly(replace(config, jobs=4))
+            self.assertEqual(parallel.summary, serial.summary)
+
+            def read_episodes(path):
+                episodes = []
+                for line in path.read_text().splitlines():
+                    row = json.loads(line)
+                    if row["type"] == "episode":
+                        row.pop("time_utc")
+                        episodes.append(row)
+                return sorted(episodes, key=lambda row: (row["case_index"], row["repeat"]))
+
+            self.assertEqual(len(read_episodes(parallel.log_path)), 16)
+            self.assertEqual(read_episodes(parallel.log_path), read_episodes(serial.log_path))
+
+    def test_parallel_failure_saves_completed_games_before_interrupting(self):
+        saved = Event()
+
+        def run_game(config, log, case_index, x, y, repeat, stop):
+            if case_index == 0:
+                _run_episode(config, log, case_index, x, y, repeat, stop)
+                saved.set()
+                self.assertTrue(stop.wait(timeout=5))
+            else:
+                self.assertEqual(case_index, 1)
+                self.assertTrue(saved.wait(timeout=5))
+                raise RuntimeError("synthetic worker failure")
+
+        with tempfile.TemporaryDirectory() as directory, patch("halfduplex.experiment._run_episode", run_game):
+            with self.assertRaisesRegex(RuntimeError, "synthetic worker failure"):
+                self.run_quietly(self.config(directory, case_limit=5, jobs=2))
+            run = next(Path(directory).glob("e4_*"))
+            rows = [json.loads(line) for line in (run / "journal.jsonl").read_text().splitlines()]
+            self.assertEqual([row["type"] for row in rows], ["config", "episode", "interrupted"])
+            self.assertEqual(rows[1]["case_index"], 0)
+            summary = json.loads((run / "summary.json").read_text())
+            self.assertFalse(summary["run_complete"])
+            self.assertEqual(summary["exact_execution"]["total"], 1)
+
     def test_interrupted_and_truncated_logs(self):
         with tempfile.TemporaryDirectory() as directory:
             result = self.run_quietly(self.config(directory, case_limit=2))
@@ -134,7 +182,7 @@ class ExperimentTests(unittest.TestCase):
         for values in ({"protocol": "ip_silence", "task": "eq"},
                        {"protocol": "eq_zero", "channel": "silence"},
                        {"protocol": "specialized", "task": "disj"},
-                       {"protocol": "specialized", "task": "ip", "channel": "zero"},
+                       {"protocol": "disj_zero", "channel": "silence"},
                        {"n": 0}, {"case_limit": 0}, {"case_limit": None},
                        {"sampling": "eq_balanced"},
                        {"task": "eq", "channel": "zero", "n": 2, "sampling": "eq_balanced", "case_limit": 15}):

@@ -71,6 +71,23 @@ class VisualizationTests(unittest.TestCase):
                 self.assertEqual(episode["actual"]["inputs"], episode["reference"]["inputs"])
                 self.assertEqual(episode["actual"]["final"], episode["reference"]["final"])
 
+    def test_zero_protocols_label_variable_passes_and_recursion(self):
+        cases = (
+            ("ip", "0001", "1111", ("IP pass 1", "IP pass 2", "Return XOR result")),
+            ("disj", "01" * 3 + "00" * 2, "0" * 10, ("DISJ pass for 01", "DISJ pass for 00")),
+            ("disj", "0001", "0010", ("DISJ pass for 00", "Reduced equality test")),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for task, x, y, expected_phases in cases:
+                with self.subTest(task=task, x=x, y=y):
+                    config = RunConfig(task=task, channel="zero", n=len(x))
+                    log = self.write_log(directory, config, [(x, y)])
+                    episode = load_protocol_log(log)["episodes"][0]
+                    self.assertTrue(episode["joint_correct"])
+                    self.assertTrue(episode["exact"])
+                    phases = {row["phase"] for row in episode["reference"]["rows"]}
+                    self.assertTrue(set(expected_phases) <= phases, phases)
+
     def test_wrong_answer_and_unexecuted_terminal_actions(self):
         with tempfile.TemporaryDirectory() as directory:
             cfg = RunConfig(n=2, case_limit=1)

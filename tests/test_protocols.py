@@ -1,6 +1,6 @@
 import unittest
 
-from halfduplex import RunConfig, verify_reference
+from halfduplex import RunConfig, input_pairs, verify_reference
 from halfduplex.analysis import reference_player, score_episode
 from halfduplex.core import ALICE, ACTIONS, channel_step, play
 from halfduplex.protocols import PROTOCOLS, capacity_width, digits
@@ -8,14 +8,17 @@ from halfduplex.protocols import PROTOCOLS, capacity_width, digits
 
 class ProtocolTests(unittest.TestCase):
     def test_exhaustive_reproduction(self):
-        for task, channel in (("ip", "silence"), ("eq", "silence"), ("eq", "zero")):
-            name = f"{task}_{channel}"
+        for name, protocol in PROTOCOLS.items():
+            if protocol.task is None:
+                continue
             for n in range(1, 7):
                 with self.subTest(protocol=name, n=n):
-                    result = verify_reference(RunConfig(task=task, channel=channel, protocol="specialized",
+                    result = verify_reference(RunConfig(task=protocol.task, channel=protocol.channel, protocol="specialized",
                                                         n=n, case_limit=min(15, 4 ** n)))
                     self.assertEqual(result["correct"], 4 ** n)
-                    self.assertEqual(result["c_max"], PROTOCOLS[name].rounds(n))
+                    self.assertLessEqual(result["c_max"], protocol.rounds(n))
+                    if name != "disj_zero":
+                        self.assertEqual(result["c_max"], protocol.rounds(n))
 
     def test_baseline_all_tasks_and_channels(self):
         for task in ("ip", "eq", "disj"):
@@ -24,6 +27,17 @@ class ProtocolTests(unittest.TestCase):
                 result = verify_reference(config)
                 self.assertEqual(result["correct"], 64)
                 self.assertEqual(result["c_max"], 4)
+
+    def test_long_reference_check_uses_supplied_pairs(self):
+        config = RunConfig(task="disj", channel="zero", n=32, case_limit=4)
+        with self.assertRaisesRegex(ValueError, "лимит проверки"):
+            verify_reference(config)
+        result = verify_reference(config, pairs=iter(input_pairs(config)))
+        self.assertEqual(result["pairs"], 4)
+        self.assertEqual(result["correct"], 4)
+        self.assertFalse(result["exhaustive"])
+        self.assertNotIn("c_max", result)
+        self.assertLessEqual(result["max_observed_rounds"], config.max_rounds)
 
     def test_channel_all_action_pairs(self):
         for channel in ("silence", "zero"):

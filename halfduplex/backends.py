@@ -93,9 +93,11 @@ def _kill_process_group(process: subprocess.Popen) -> None:
 
 
 class CodexPlayer:
-    def __init__(self, config: RunConfig, player: PlayerConfig, role: str, log: RunLog, *, persistent: bool):
+    def __init__(self, config: RunConfig, player: PlayerConfig, role: str, log: RunLog, *, persistent: bool,
+                 episode_context: dict[str, int] | None = None):
         self.config, self.player, self.role, self.log = config, player, role, log
         self.persistent = persistent
+        self.episode_context = dict(episode_context or {})
         self.session_id: str | None = None
         self.executable = shutil.which(config.codex_executable)
         if self.executable is None:
@@ -118,8 +120,11 @@ class CodexPlayer:
         self.env["CODEX_HOME"] = str(self.home)
         self.env["NO_COLOR"] = "1"
         self.env["RUST_LOG"] = "warn"
-        self.log.events.emit("player.created", role=role, config=player.__dict__,
-                             policy=tool_policy(player.allow_python), auth_file_available=self.auth_copied)
+        self._emit("player.created", role=role, config=player.__dict__,
+                   policy=tool_policy(player.allow_python), auth_file_available=self.auth_copied)
+
+    def _emit(self, kind: str, **fields) -> None:
+        self.log.events.emit(kind, **(self.episode_context | fields))
 
     def __call__(self, view: View) -> str:
         if view.role != self.role:
@@ -137,12 +142,12 @@ class CodexPlayer:
         command = command_for(self.executable, self.player, workspace=self.workspace,
                               reply_path=reply_path, python_log=call_dir / "python.jsonl",
                               session_id=self.session_id, persistent=self.persistent)
-        metadata = {"call_id": call_id, "role": self.role, "position": position,
+        metadata = {**self.episode_context, "call_id": call_id, "role": self.role, "position": position,
                     "session_id_before": self.session_id, "command": command, "cwd": str(self.workspace),
                     "requested_model": self.player.model, "policy": tool_policy(self.player.allow_python),
                     "started_utc": utc_now()}
         (call_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
-        self.log.events.emit("model.started", **metadata)
+        self._emit("model.started", **metadata)
         started = time.monotonic()
         violations, reader_errors = [], []
         process = None
@@ -158,18 +163,18 @@ class CodexPlayer:
                         try:
                             event = json.loads(line)
                         except json.JSONDecodeError:
-                            self.log.events.emit("cli.unparsed_stdout", call_id=call_id, line=line)
+                            self._emit("cli.unparsed_stdout", call_id=call_id, line=line)
                             continue
                         if event.get("type") == "thread.started" and self.persistent:
                             self.session_id = event.get("thread_id")
                         audit = audit_event(event, self.player.allow_python)
                         if audit:
-                            self.log.events.emit("tool.observed", call_id=call_id, role=self.role, **audit)
+                            self._emit("tool.observed", call_id=call_id, role=self.role, **audit)
                             if not audit["allowed"]:
                                 violations.append(audit)
                                 if process:
                                     _kill_process_group(process)
-                        self.log.events.emit("cli.event", call_id=call_id, role=self.role, event=event)
+                        self._emit("cli.event", call_id=call_id, role=self.role, event=event)
             except Exception as exc:
                 reader_errors.append(str(exc))
 
@@ -213,8 +218,7 @@ class CodexPlayer:
             outcome = "completed"
             return reply_path.read_text(encoding="utf-8")
         except BaseException as exc:
-            self.log.events.emit("model.error", call_id=call_id, role=self.role,
-                                 error=type(exc).__name__, message=str(exc))
+            self._emit("model.error", call_id=call_id, role=self.role, error=type(exc).__name__, message=str(exc))
             raise
         finally:
             if process:
@@ -229,7 +233,7 @@ class CodexPlayer:
             metadata.update(outcome=outcome, returncode=process.returncode if process else None,
                             elapsed_seconds=time.monotonic() - started, session_id_after=self.session_id)
             (call_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
-            self.log.events.emit("model.finished", **metadata)
+            self._emit("model.finished", **metadata)
 
     def close(self):
         try:
@@ -246,8 +250,8 @@ class CodexPlayer:
                         model = payload.get("model") if isinstance(payload, dict) else None
                         if row.get("type") == "turn_context" and isinstance(model, str):
                             resolved.add(model)
-                self.log.events.emit("player.resolved_models", role=self.role, models=sorted(resolved),
-                                     requested_model=self.player.model)
+                self._emit("player.resolved_models", role=self.role, models=sorted(resolved),
+                           requested_model=self.player.model)
                 destination = self.log.directory / "sessions" / f"{self.role.lower()}_{self.root.name}"
                 destination.parent.mkdir(exist_ok=True)
                 shutil.copytree(sessions, destination)

@@ -65,8 +65,10 @@
 |---|---|---|---|
 | `baseline` | `send_x_then_result` | IP, EQ, DISJ / оба канала | `n+1` |
 | `specialized` | `ip_silence` | IP / `silence` | `ceil(n/2)+2` |
+| `specialized` | `ip_zero` | IP / `zero` | `4+k+floor(3*k/4)`, где `k=ceil(n/2)` |
 | `specialized` | `eq_silence` | EQ / `silence` | `k+w+2`, `k=ceil(n/log_2(5))`, `w=ceil(log_3(k+1))` |
 | `specialized` | `eq_zero` | EQ / `zero` | `k+2*w+1`, `k=ceil(n/log_2(3))`, `w=ceil(log_2(k+1))` |
+| `specialized` | `disj_zero` | DISJ / `zero` | Рекуррентная граница `B(n)` ниже |
 
 - **Передача входа и результата (`send_x_then_result`)**. Алиса передаёт весь `x`
   по одному биту; Боб вычисляет выбранную функцию по `x` и своему `y`, затем
@@ -75,6 +77,10 @@
   ноль. Игроки обрабатывают пары битов по таблице отправки/слушания и накапливают
   локальные биты. Затем Алиса передаёт свой аккумулятор, Боб объединяет его со
   своим через XOR и возвращает ответ.
+- **IP по парам битов с нулём (`ip_zero`)**. Алиса сообщает свою самую частую пару.
+  По ней игроки выбирают действия для двух проходов. Во втором проходе остаются
+  только позиции, где в первом оба слушали. В проходах отправляют только `1`, поэтому
+  взаимное слушание оба распознают по `0`. В конце игроки объединяют локальные биты.
 - **EQ в основании 5 с тишиной (`eq_silence`)**. Входы кодируются пятеричными
   цифрами. Полученные символы проверяются на совместимость с равными цифрами;
   флаг несовпадения позволяет завершить обмен раньше, за `k+1` раундов.
@@ -83,15 +89,29 @@
 - **EQ в основании 3 с нулём (`eq_zero`)**. Входы кодируются троичными цифрами.
   После основной фазы оба передают двоичные счётчики своих отправок и сверяют их
   с числом полученных единиц. Итоговый флаг несовпадения определяет ответ.
+- **Рекурсивное непересечение (`disj_zero`)**. Игроки обмениваются частотами пар и
+  выбирают один из разборов с порогом `α=0.5118`. После проверки пересечений
+  оставшиеся пары дают более короткую задачу DISJ или EQ в том же канале.
+  Реализация использует точные целочисленные пороги и допускает равенство на границе.
+
+Для `disj_zero` обозначим через `E(m)` границу `eq_zero` для `m>0`, а `E(0)=0`.
+Граница реализации `B(0)=0`, `B(1)=2`. При `k=floor(n/2)` и `n>=2`:
+
+```text
+B(n) = 4 + 6*bit_length(k) + k + max(B(floor(0.4882*k)), E(floor(0.5118*k)))
+```
+
+Четыре раунда покрывают обмен флагами и обмен последним битом при нечётном входе.
+Граница из статьи для DISJ в `zero` имеет вид `0.6615*n + O(log² n)`.
 
 Оценки включают завершающий обмен и счётчики с достаточной шириной для значений
 `0..k`. При малых `n` специализированная схема может быть дороже базовой.
-Для DISJ и для IP с каналом `zero` доступен только `baseline`.
+Для DISJ с каналом `silence` доступен `baseline`.
 Прежние значения `protocol` (`ip_silence`, `eq_silence`, `eq_zero`,
 `send_x_then_result`) продолжают читаться из конфигураций и журналов.
 
-Источники: IP — [Dementiev et al., ECCC TR26-112, теорема 3](https://eccc.weizmann.ac.il/report/2026/112/download/);
-EQ — [Hoover et al., ECCC TR18-089, редакция 2, теоремы 6 и 10](https://eccc.weizmann.ac.il/report/2018/089/revision/2/download/).
+Источник для IP и DISJ — [Dementiev et al., ECCC TR26-112, теоремы 3, 5 и 6](https://eccc.weizmann.ac.il/report/2026/112/download/).
+Источник для EQ — [Hoover et al., ECCC TR18-089, редакция 2, теоремы 6 и 10](https://eccc.weizmann.ac.il/report/2018/089/revision/2/download/).
 
 ## Промпт модели
 
@@ -161,6 +181,8 @@ python3 -m pip install -r requirements-plots.txt
 
 Открой `reproduction.ipynb` из корня проекта и выполняй ячейки по порядку:
 настройки → входы и промпт → программный эталон → запуск → отчёт и графики.
+Ноутбук перебирает все пары для `n<=6`. Для более длинных входов он проверяет
+эталон на парах, выбранных для эксперимента.
 Начальные настройки ноутбука:
 
 ```python
@@ -169,6 +191,7 @@ from halfduplex import RunConfig, PlayerConfig, run_experiment
 config = RunConfig(
     task="ip", channel="silence", protocol="specialized", n=5,
     experiment="episode",       # episode или step
+    jobs=1,                      # число одновременных игр в episode
     alice=PlayerConfig(backend="codex", model=None, allow_python=True),
     bob=PlayerConfig(backend="codex", model=None, allow_python=True),
     sampling="uniform", case_limit=15, seed=42, repeats=1,
@@ -180,6 +203,8 @@ config = RunConfig(
 укажи точное имя модели отдельно у каждой роли. `backend="python"` выбирает
 программный эталон, `"manual"` — ручной ввод. `round_limit` задаёт отдельный бюджет связи.
 Для EQ выбери `task="eq"` и при необходимости `sampling="eq_balanced"`.
+Для IP и DISJ в модели с нулём выбери `channel="zero"`, `protocol="specialized"`
+и соответственно `task="ip"` или `task="disj"`.
 Для сравнения с базовым обменом поменяй только `protocol="baseline"`.
 
 Для начала прогона включи флаг в ячейке запуска:
@@ -199,11 +224,20 @@ result = run_experiment(config) if RUN_EXPERIMENT else None
 python3 -m halfduplex reference --task ip --channel silence --protocol specialized --n 5
 python3 -m halfduplex run --config configs/eq_silence.json
 python3 -m halfduplex run --config configs/eq_zero.json --python-players
+python3 -m halfduplex run --config configs/ip_zero.json --python-players
+python3 -m halfduplex run --config configs/disj_zero.json --python-players
+python3 -m halfduplex run --config configs/ip_zero.json --jobs 4
 ```
 
 В `configs/` также есть `ip_silence.json`. Параметры CLI `--alice-model`,
 `--bob-model`, `--limit` переопределяют настройки запуска; `--python-players`
 выбирает программных игроков. Отдельный аудит инструмента: `python3 -m halfduplex audit-tools`.
+
+Для `episode` параметр `jobs` в конфиге или `--jobs` в CLI задаёт максимальное число
+одновременных игр. У каждой игры свои сессии Алисы и Боба. Число и набор пар,
+повторы и порядок раундов внутри игры задаются теми же настройками, что при `jobs=1`.
+Журнал записывает игры по мере завершения с их `case_index` и `repeat`. При сбое
+уже записанные игры входят в частичный отчёт. В `step` и при ручном вводе используется `jobs=1`.
 
 ## Результаты и проверки
 

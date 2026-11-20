@@ -24,6 +24,17 @@ class ConfigurationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             RunConfig(fsync="false")
 
+    def test_jobs_are_validated_before_the_run(self):
+        self.assertEqual(RunConfig().jobs, 1)
+        self.assertEqual(RunConfig(jobs=4).record()["jobs"], 4)
+        for value in (0, -1, True, 1.5):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "jobs"):
+                RunConfig(jobs=value)
+        with self.assertRaisesRegex(ValueError, "episode"):
+            RunConfig(experiment="step", jobs=2)
+        with self.assertRaisesRegex(ValueError, "ручного ввода"):
+            RunConfig(alice=PlayerConfig(backend="manual"), jobs=2)
+
     def test_task_channel_and_strategy_can_change_independently(self):
         cfg = RunConfig(task="ip", channel="silence", protocol="specialized", n=5)
         equality = replace(cfg, task="eq")
@@ -52,6 +63,8 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_prompts_follow_selected_function_and_implementation(self):
         cases = (("specialized", "ip", "silence", "Разбей свой вход на пары."),
+                 ("specialized", "ip", "zero", "проход 2 Alice / Bob"),
+                 ("specialized", "disj", "zero", "Подпротокол EQ для ветви 00"),
                  ("specialized", "eq", "silence", "основании 5"),
                  ("specialized", "eq", "zero", "основании 3"),
                  ("baseline", "disj", "zero", "Alice отправляет биты x слева направо"))
@@ -64,9 +77,13 @@ class ConfigurationTests(unittest.TestCase):
                     self.assertIn(f"{task.upper()}:", prompt)
                     if explanation == "pseudocode":
                         self.assertIn(f"def {cfg.implementation.choose.__name__}(", prompt)
+                        if cfg.implementation.local_steps is not None:
+                            self.assertIn(f"def {cfg.implementation.local_steps.__name__}(", prompt)
 
     def test_reference_cli_accepts_separate_fields_and_legacy_names(self):
         cases = ((["--task", "eq", "--channel", "zero", "--protocol", "specialized"], "eq_zero"),
+                 (["--task", "ip", "--channel", "zero", "--protocol", "specialized"], "ip_zero"),
+                 (["--task", "disj", "--channel", "zero", "--protocol", "specialized"], "disj_zero"),
                  (["--task", "disj", "--channel", "zero", "--protocol", "baseline"], "send_x_then_result"),
                  (["--protocol", "eq_zero"], "eq_zero"))
         for args, implementation in cases:

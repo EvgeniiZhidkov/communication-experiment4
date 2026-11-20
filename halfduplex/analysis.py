@@ -4,6 +4,7 @@ from __future__ import annotations
 import itertools
 import json
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -212,23 +213,32 @@ def analyze_file(log_path: str | Path, report_path: str | Path | None = None) ->
             raise
 
 
-def verify_reference(config: RunConfig, *, max_pairs: int = 1_048_576) -> dict:
-    total = 4 ** config.n
-    if total > max_pairs:
-        raise ValueError(f"Полный перебор: {total} пар; лимит проверки {max_pairs}.")
+def verify_reference(config: RunConfig, *, max_pairs: int = 1_048_576,
+                     pairs: Iterable[tuple[str, str]] | None = None) -> dict:
+    """Verify the reference over all inputs, or over the supplied sample."""
+    exhaustive = pairs is None
+    if pairs is None:
+        total = 4 ** config.n
+        if total > max_pairs:
+            raise ValueError(f"Полный перебор: {total} пар; лимит проверки {max_pairs}.")
+        width = 2 ** config.n
+        pairs = ((f"{a:0{config.n}b}", f"{b:0{config.n}b}")
+                 for a in range(width) for b in range(width))
     player = reference_player(config)
     implementation = config.implementation
     bound = implementation.rounds(config.n)
     counts = Counter()
-    for a in range(2 ** config.n):
-        for b in range(2 ** config.n):
-            x, y = f"{a:0{config.n}b}", f"{b:0{config.n}b}"
-            actual = play(config.n, x, y, player, player, channel=config.channel, max_rounds=bound)
-            truth = function_bit(config.task, x, y)
-            if actual.status != "completed" or not all(d.token == f"ANSWER_{truth}" for d in actual.terminal):
-                raise AssertionError(f"Эталон неверен: {config.protocol}, x={x}, y={y}, {actual}")
-            counts[len(actual.rounds)] += 1
+    for x, y in pairs:
+        actual = play(config.n, x, y, player, player, channel=config.channel, max_rounds=bound)
+        truth = function_bit(config.task, x, y)
+        if actual.status != "completed" or not all(d.token == f"ANSWER_{truth}" for d in actual.terminal):
+            raise AssertionError(f"Эталон неверен: {config.protocol}, x={x}, y={y}, {actual}")
+        counts[len(actual.rounds)] += 1
+    if not counts:
+        raise ValueError("Для проверки эталона нужна хотя бы одна пара.")
+    checked = sum(counts.values())
+    max_key = "c_max" if exhaustive else "max_observed_rounds"
     return {"protocol": config.protocol, "task": config.task, "channel": config.channel,
-            "implementation": implementation.name, "n": config.n, "pairs": total, "correct": total,
-            "exhaustive": True, "c_max": max(counts), "round_counts": dict(sorted(counts.items())),
+            "implementation": implementation.name, "n": config.n, "pairs": checked, "correct": checked,
+            "exhaustive": exhaustive, max_key: max(counts), "round_counts": dict(sorted(counts.items())),
             "implemented_upper_bound": bound, "bound_formula": implementation.formula}

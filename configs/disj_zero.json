@@ -1,0 +1,10 @@
+{
+  "task": "disj",
+  "channel": "zero",
+  "protocol": "specialized",
+  "n": 4,
+  "experiment": "episode",
+  "explanation": "prose",
+  "case_limit": 15,
+  "seed": 42
+}

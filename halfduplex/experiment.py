@@ -6,9 +6,12 @@ import random
 import shutil
 import subprocess
 import traceback
+from concurrent.futures import FIRST_COMPLETED, CancelledError, ThreadPoolExecutor, wait
 from contextlib import ExitStack
 from dataclasses import asdict, dataclass
+from itertools import islice
 from pathlib import Path
+from threading import Event
 
 from .analysis import analyze_file, reference_player
 from .backends import CodexPlayer, tool_policy
@@ -70,7 +73,8 @@ class RunResult:
     summary: dict
 
 
-def _players(config: RunConfig, log: RunLog, stack: ExitStack, *, persistent: bool):
+def _players(config: RunConfig, log: RunLog, stack: ExitStack, *, persistent: bool,
+             episode_context: dict[str, int] | None = None):
     players = {}
     reference = reference_player(config)
     for role, settings in ((ALICE, config.alice), (BOB, config.bob)):
@@ -82,10 +86,85 @@ def _players(config: RunConfig, log: RunLog, stack: ExitStack, *, persistent: bo
                 return input("Ответ: ")
             players[role] = manual
         else:
-            player = CodexPlayer(config, settings, role, log, persistent=persistent)
+            player = CodexPlayer(config, settings, role, log, persistent=persistent,
+                                 episode_context=episode_context)
             stack.callback(player.close)
             players[role] = player
     return players
+
+
+def _run_episode(config: RunConfig, log: RunLog, case_index: int, x: str, y: str, repeat: int,
+                 stop: Event | None = None) -> None:
+    episode_context = {"case_index": case_index, "repeat": repeat}
+    context = {**episode_context, "x": x, "y": y}
+
+    def emit(kind, **fields):
+        log.events.emit(kind, **context, **fields)
+
+    emit("episode.started")
+    with ExitStack() as stack:
+        players = _players(config, log, stack, persistent=True, episode_context=episode_context)
+
+        def choose(view):
+            if stop is not None and stop.is_set():
+                raise CancelledError()
+            return players[view.role](view)
+
+        episode = play(config.n, x, y, choose, choose, channel=config.channel,
+                       max_rounds=config.max_rounds, emit=emit)
+        log.journal.emit("episode", **context, **episode.record())
+        emit("episode.finished", status=episode.status)
+
+
+def _run_episodes(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> None:
+    games = ((i, x, y, repeat) for i, (x, y) in enumerate(pairs)
+             for repeat in range(1, config.repeats + 1))
+    workers = min(config.jobs, len(pairs) * config.repeats)
+    if workers <= 1:
+        for game in games:
+            _run_episode(config, log, *game)
+        return
+
+    stop = Event()
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        free_slots = workers
+        pending = set()
+        try:
+            while True:
+                for game in islice(games, free_slots):
+                    pending.add(pool.submit(_run_episode, config, log, *game, stop=stop))
+                if not pending:
+                    break
+                finished, pending = wait(pending, return_when=FIRST_COMPLETED)
+                for future in finished:
+                    future.result()
+                free_slots = len(finished)
+        except BaseException:
+            # Let in-flight requests finish. Workers stop before sending another one,
+            # and the executor joins them before the run's journals are closed.
+            stop.set()
+            for future in pending:
+                future.cancel()
+            raise
+
+
+def _run_steps(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> None:
+    reference = reference_player(config)
+    seen = set()
+    for case_index, (x, y) in enumerate(pairs):
+        expected = play(config.n, x, y, reference, reference, channel=config.channel,
+                        max_rounds=config.implementation.rounds(config.n))
+        with ExitStack() as stack:
+            players = _players(config, log, stack, persistent=False)
+            for decision in expected.decisions():
+                view = decision.view
+                if view in seen:
+                    continue
+                seen.add(view)
+                for repeat in range(1, config.repeats + 1):
+                    log.events.emit("step.started", case_index=case_index, repeat=repeat, state=asdict(view))
+                    raw = players[view.role](view)
+                    log.journal.emit("step", case_index=case_index, repeat=repeat, state=asdict(view), raw_reply=raw)
 
 
 def run_experiment(config: RunConfig) -> RunResult:
@@ -120,36 +199,10 @@ def run_experiment(config: RunConfig) -> RunResult:
                 manifest["python_preflight"] = PythonSandbox().preflight()
                 log.events.emit("python.preflight", **manifest["python_preflight"])
         (log.directory / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-        reference = reference_player(config)
-        seen = set()
-        for case_index, (x, y) in enumerate(pairs):
-            if config.experiment == "episode":
-                for repeat in range(1, config.repeats + 1):
-                    context = {"case_index": case_index, "repeat": repeat, "x": x, "y": y}
-                    log.events.emit("episode.started", **context)
-                    with ExitStack() as stack:
-                        players = _players(config, log, stack, persistent=True)
-                        def emit(kind, **fields):
-                            log.events.emit(kind, **context, **fields)
-                        episode = play(config.n, x, y, players[ALICE], players[BOB],
-                                       channel=config.channel, max_rounds=config.max_rounds, emit=emit)
-                        log.journal.emit("episode", **context, **episode.record())
-                        log.events.emit("episode.finished", **context, status=episode.status)
-            else:
-                expected = play(config.n, x, y, reference, reference, channel=config.channel,
-                                max_rounds=config.implementation.rounds(config.n))
-                with ExitStack() as stack:
-                    players = _players(config, log, stack, persistent=False)
-                    for decision in expected.decisions():
-                        view = decision.view
-                        if view in seen:
-                            continue
-                        seen.add(view)
-                        for repeat in range(1, config.repeats + 1):
-                            log.events.emit("step.started", case_index=case_index, repeat=repeat, state=asdict(view))
-                            raw = players[view.role](view)
-                            log.journal.emit("step", case_index=case_index, repeat=repeat,
-                                             state=asdict(view), raw_reply=raw)
+        if config.experiment == "episode":
+            _run_episodes(config, log, pairs)
+        else:
+            _run_steps(config, log, pairs)
         log.journal.emit("completed")
     except BaseException as exc:
         failure = exc

@@ -24,6 +24,7 @@ def main():
     run.add_argument("--alice-model")
     run.add_argument("--bob-model")
     run.add_argument("--limit", type=int)
+    run.add_argument("--jobs", type=int, help="Сколько игр одновременно запускать в режиме episode")
     analyze = sub.add_parser("analyze", help="Пересчёт нового или старого JSONL-журнала")
     analyze.add_argument("log_path", type=Path)
     audit = sub.add_parser("audit-tools", help="Один реальный запрос с проверкой вызова Python")
@@ -69,6 +70,11 @@ def main():
                 config = replace(config, **{role: replace(getattr(config, role), model=model)})
         if args.limit is not None:
             config = replace(config, case_limit=args.limit)
+        if args.jobs is not None:
+            try:
+                config = replace(config, jobs=args.jobs)
+            except ValueError as exc:
+                parser.error(str(exc))
         result = run_experiment(config).summary
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

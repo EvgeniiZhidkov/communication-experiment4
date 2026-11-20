@@ -49,6 +49,7 @@ class RunConfig:
     output_dir: str | Path = "runs"
     codex_executable: str = "codex"
     fsync: bool = True
+    jobs: int = 1
 
     def __post_init__(self):
         protocol, task, channel = resolve_selection(self.protocol, self.task, self.channel)
@@ -59,6 +60,13 @@ class RunConfig:
             raise ValueError("n должно быть целым числом от 1 до 1024.")
         if self.experiment not in {"episode", "step"}:
             raise ValueError("experiment: episode или step (воспроизведение E4).")
+        if not isinstance(self.jobs, int) or isinstance(self.jobs, bool) or self.jobs < 1:
+            raise ValueError("jobs должно быть положительным целым числом.")
+        if self.jobs > 1:
+            if self.experiment != "episode":
+                raise ValueError("jobs > 1 поддерживается в режиме episode.")
+            if any(player.backend == "manual" for player in (self.alice, self.bob)):
+                raise ValueError("Для ручного ввода в одном терминале требуется jobs=1.")
         if self.explanation not in {"prose", "pseudocode"}:
             raise ValueError("explanation: prose или pseudocode.")
         if self.input_format not in {"bits", "bit_list", "positions"}:

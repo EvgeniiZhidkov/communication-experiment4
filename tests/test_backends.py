@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from collections import defaultdict
 from pathlib import Path
 from unittest.mock import patch
 
@@ -19,8 +20,22 @@ if '--version' in sys.argv:
 if '--ephemeral' in sys.argv and 'resume' in sys.argv:
     sys.exit(4)  # Ephemeral threads cannot be resumed.
 prompt = sys.stdin.read()
-print(json.dumps({'type':'thread.started','thread_id':'test-thread'}),flush=True)
+parallel = pathlib.Path(sys.argv[0]).name == 'parallel-codex'
+thread_id = pathlib.Path.cwd().parent.name if parallel else 'test-thread'
+resume = 'resume' in sys.argv
+if parallel and resume and thread_id not in sys.argv:
+    sys.exit(6)
+print(json.dumps({'type':'thread.started','thread_id':thread_id}),flush=True)
 print('diagnostic stderr',file=sys.stderr,flush=True)
+if parallel and not resume and thread_id.startswith('halfduplex-alice-'):
+    ready = pathlib.Path(sys.argv[0]).parent / 'ready'
+    ready.mkdir(exist_ok=True)
+    (ready / thread_id).touch()
+    deadline = time.monotonic() + 5
+    while len(list(ready.iterdir())) < 4:
+        if time.monotonic() > deadline:
+            sys.exit(5)
+        time.sleep(0.01)
 if 'timeout' in pathlib.Path(sys.argv[0]).name:
     time.sleep(10)
 if 'fail' in pathlib.Path(sys.argv[0]).name:
@@ -32,8 +47,9 @@ if 'pipe-holder' in pathlib.Path(sys.argv[0]).name:
     import subprocess
     subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'])
 reply = pathlib.Path(sys.argv[sys.argv.index('--output-last-message')+1])
-reply.write_text('ANSWER_0\\n')
-print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':'ANSWER_0'}}),flush=True)
+token = 'LISTEN' if parallel and not resume else 'ANSWER_0'
+reply.write_text(token + '\\n')
+print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':token}}),flush=True)
 print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'output_tokens':2}}),flush=True)
 '''
 
@@ -131,6 +147,37 @@ class BackendTests(unittest.TestCase):
                 command = json.loads(path.read_text())["command"]
                 self.assertIn("--ephemeral", command)
                 self.assertNotIn("resume", command)
+
+    def test_parallel_episodes_overlap_and_keep_sessions_separate(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {"CODEX_HOME": directory}):
+            settings = PlayerConfig(allow_python=False, timeout_seconds=10)
+            config = RunConfig(codex_executable=self.fake(directory, "parallel-codex"), output_dir=directory,
+                               alice=settings, bob=settings, n=2, case_limit=3, repeats=2, jobs=4, fsync=False)
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = run_experiment(config)
+            self.assertTrue(result.summary["run_complete"])
+            self.assertEqual(result.summary["joint_accuracy"]["total"], 6)
+
+            active, peak, calls = set(), 0, defaultdict(list)
+            for line in (result.directory / "events.jsonl").read_text().splitlines():
+                event = json.loads(line)
+                if event["type"] == "model.started":
+                    active.add(event["call_id"])
+                    peak = max(peak, len(active))
+                elif event["type"] == "model.finished":
+                    active.remove(event["call_id"])
+                    calls[event["case_index"], event["repeat"], event["role"]].append(event)
+            self.assertFalse(active)
+            self.assertEqual(peak, 4)
+            self.assertEqual(len(calls), 12)
+            sessions = set()
+            for first, followup in calls.values():
+                self.assertIsNone(first["session_id_before"])
+                self.assertEqual(followup["session_id_before"], first["session_id_after"])
+                self.assertEqual(followup["session_id_after"], first["session_id_after"])
+                self.assertEqual([first["position"], followup["position"]], [1, 2])
+                self.assertNotIn(first["session_id_after"], sessions)
+                sessions.add(first["session_id_after"])
 
     def test_timeout_applies_to_descendants_holding_output_pipes(self):
         import subprocess

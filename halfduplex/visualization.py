@@ -13,7 +13,7 @@ import textwrap
 from .analysis import analyze_run, reference_player
 from .config import RunConfig
 from .core import ACTIONS, ANSWERS, ALICE, BOB, View, channel_step, function_bit, play
-from .protocols import capacity_width, digits
+from .protocols import capacity_width, digits, replay_local_steps
 
 
 @dataclass(frozen=True)
@@ -61,9 +61,10 @@ def _phase(config: RunConfig, index: int) -> tuple[str, int | None]:
 
 def _input_units(config: RunConfig, bits: str) -> list[str]:
     name = config.implementation.name
-    if name == "ip_silence":
-        padded = bits + ("0" if config.n % 2 else "")
-        return [padded[i:i + 2] for i in range(0, len(padded), 2)]
+    if name in {"ip_silence", "ip_zero", "disj_zero"}:
+        if name != "disj_zero" and config.n % 2:
+            bits += "0"
+        return [bits[i:i + 2] for i in range(0, len(bits), 2)]
     if name.startswith("eq_"):
         base = 5 if name == "eq_silence" else 3
         return [str(d) for d in digits(int(bits, 2), base, capacity_width(2 ** config.n, base))]
@@ -73,6 +74,7 @@ def _input_units(config: RunConfig, bits: str) -> list[str]:
 def _trace(config: RunConfig, record: dict, *, reference: bool = False) -> dict:
     views = {ALICE: View(ALICE, record["x"]), BOB: View(BOB, record["y"])}
     choose = reference_player(config)
+    local_steps = config.implementation.local_steps
     units = {role: _input_units(config, v.own_input) for role, v in views.items()}
     rows, final = [], record.get("raw_outputs")
     for row in record["rounds"]:
@@ -86,19 +88,31 @@ def _trace(config: RunConfig, record: dict, *, reference: bool = False) -> dict:
         if tuple(observations) != expected_observations:
             raise ValueError("Наблюдения в журнале не соответствуют действиям и каналу.")
         index = len(rows) + 1
-        phase, unit_index = _phase(config, index)
-        expected = {}
+        expected, round_units, phases = {}, {}, set()
         for role, view in views.items():
             try:
-                expected[role] = choose(view)
+                if local_steps is None:
+                    expected[role] = choose(view)
+                else:
+                    move = replay_local_steps(view, local_steps(role, view.own_input))
+                    expected[role], round_units[role] = move.token, move.unit
+                    phases.add(move.phase)
             except (ValueError, IndexError, KeyError):
                 expected[role] = None
+            round_units.setdefault(role, "")
+        if local_steps is None:
+            phase, unit_index = _phase(config, index)
+            if unit_index is not None:
+                round_units = {role: values[unit_index] if unit_index < len(values) else ""
+                               for role, values in units.items()}
+        elif len(phases) == 1:
+            phase = phases.pop()
+        else:
+            phase = "Different local phases" if phases else "Phase unavailable"
         rows.append({
             "index": index, "actions": actions, "observations": dict(zip((ALICE, BOB), observations)),
             "kind": exchange_kind(actions[ALICE], actions[BOB]), "phase": phase,
-            "units": {role: values[unit_index] if unit_index is not None and unit_index < len(values) else ""
-                      for role, values in units.items()},
-            "expected_local": expected,
+            "units": round_units, "expected_local": expected,
         })
         views = {role: view.after(actions[role], obs)
                  for (role, view), obs in zip(views.items(), observations)}
@@ -202,8 +216,7 @@ def draw_protocol(data: dict, episode: dict, *, reference: bool = False, page: i
         ax.text(x, top - 1.35, f"{'x' if role == ALICE else 'y'} = {bits}", ha="center",
                 fontsize=9, fontfamily="monospace", color=ink)
         if data["implementation"] != "send_x_then_result":
-            encoding = "pairs" if data["implementation"] == "ip_silence" else (
-                "base 5" if data["implementation"] == "eq_silence" else "base 3")
+            encoding = {"eq_silence": "base 5", "eq_zero": "base 3"}.get(data["implementation"], "pairs")
             encoded = _short(" ".join(trace["units"][role]), 43)
             ax.text(x, top - 1.67, f"{encoding}: {encoded}", ha="center", fontsize=8, color=muted)
         ax.plot([x, x], [.62, first_y + .2], color="#ccd5da", linewidth=1, zorder=0)
