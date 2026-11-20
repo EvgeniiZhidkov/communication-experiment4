@@ -13,7 +13,7 @@ from halfduplex.python_tool import PythonSandbox, SandboxUnavailable, serve
 
 
 @unittest.skipUnless(os.environ.get("HALFDUPLEX_SANDBOX_TESTS") == "1",
-                     "Run scripts/validate_runtime.py where user/network namespaces are permitted")
+                     "Run archive/scripts/validate_runtime.py where user/network namespaces are permitted")
 class PythonIsolationTests(unittest.TestCase):
     def test_math_and_isolation(self):
         sandbox = PythonSandbox()
@@ -44,7 +44,7 @@ class PythonIsolationTests(unittest.TestCase):
     def test_mcp_transport_and_tool_logging(self):
         with tempfile.TemporaryDirectory() as directory:
             log = Path(directory) / "python.jsonl"
-            server = Path(__file__).resolve().parents[1] / "halfduplex" / "python_tool.py"
+            server = Path(__file__).resolve().parents[2] / "halfduplex" / "python_tool.py"
             requests = [
                 {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}},
                 {"jsonrpc": "2.0", "method": "notifications/initialized"},

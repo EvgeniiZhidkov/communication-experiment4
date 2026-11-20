@@ -6,7 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
     parser.add_argument("--smoke", action="store_true", help="One IP n=2 episode with two real Codex players")
     args = parser.parse_args()
     os.environ["HALFDUPLEX_SANDBOX_TESTS"] = "1"
-    suite = unittest.defaultTestLoader.loadTestsFromName("tests.test_python_tool")
+    suite = unittest.defaultTestLoader.loadTestsFromName("archive.tests.test_python_tool")
     if not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful():
         return 1
     if args.live_audit:

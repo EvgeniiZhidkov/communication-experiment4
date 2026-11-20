@@ -113,7 +113,7 @@ class VisualizationTests(unittest.TestCase):
                 exchange_kind("ANSWER_0", "LISTEN")
 
     def test_old_journals_and_reports_are_supported(self):
-        root = Path(__file__).resolve().parents[1]
+        root = Path(__file__).resolve().parents[2]
         run = root / "runs" / "experiment4_episode_20261109T221631_854494Z"
         journal = run / "experiment4_episode_20261109T221631_854494Z.jsonl"
         report = run / "experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"

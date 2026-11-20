@@ -78,7 +78,7 @@ class ExperimentTests(unittest.TestCase):
         self.assertEqual(len(input_pairs(RunConfig(n=100, case_limit=20))), 20)
 
     def test_legacy_journal_metrics_still_match(self):
-        root = Path(__file__).resolve().parents[1]
+        root = Path(__file__).resolve().parents[2]
         run = root / "runs" / "experiment4_episode_20261109T221631_854494Z"
         path = run / "experiment4_episode_20261109T221631_854494Z.jsonl"
         report = run / "experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
