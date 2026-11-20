@@ -24,7 +24,7 @@ def render_run(output, slug, run_id):
     source = result / "journal.jsonl"
     view = output / "protocols" / slug
     run = load_protocol_log(source)
-    export_protocols(source, output_dir=view)
+    export_protocols(source, output_dir=view, results_url=f"../../index.html#{slug}")
     shutil.copyfile(source, view / "journal.jsonl")
     shutil.copyfile(result / "plots.png", view / "results.png")
 

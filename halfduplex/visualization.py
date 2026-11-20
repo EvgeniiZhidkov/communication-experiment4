@@ -5,6 +5,7 @@ This module never calls a model. Matplotlib is imported only when drawing.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from html import escape
 from io import StringIO
 import json
 from pathlib import Path
@@ -291,11 +292,13 @@ def draw_protocol(data: dict, episode: dict, *, reference: bool = False, page: i
 
 def export_protocols(log_path: str | Path, *, output_dir: str | Path | None = None,
                      formats: tuple[str, ...] = ("svg", "pdf", "png"), episode: int | None = None,
-                     rounds_per_page: int = 20, dpi: int = 300) -> ProtocolExport:
+                     rounds_per_page: int = 20, dpi: int = 300,
+                     results_url: str | None = None) -> ProtocolExport:
     """Write a self-contained viewer plus actual/reference figures for each episode.
 
     episode is a one-based ordinal in the journal, not case_index. Long traces are
     paginated; all recorded rounds and the final local decisions remain visible.
+    results_url optionally adds navigation back to the hosted results.
     """
     formats = tuple(dict.fromkeys(formats))
     if not formats or set(formats) - {"svg", "pdf", "png"}:
@@ -352,6 +355,10 @@ def export_protocols(log_path: str | Path, *, output_dir: str | Path | None = No
     data["rounds_per_page"] = rounds_per_page
     payload = json.dumps(data, ensure_ascii=True).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     template = Path(__file__).with_name("templates") / "protocol_viewer.html"
+    results_link = ""
+    if results_url:
+        results_link = f'<a class="results-link" href="{escape(results_url)}">← К результатам</a>'
+    html = template.read_text(encoding="utf-8").replace("__RESULTS_LINK__", results_link)
     html_path = directory / "index.html"
-    html_path.write_text(template.read_text(encoding="utf-8").replace("__PROTOCOL_DATA__", payload), encoding="utf-8")
+    html_path.write_text(html.replace("__PROTOCOL_DATA__", payload), encoding="utf-8")
     return ProtocolExport(html_path, tuple(files), len(data["episodes"]))

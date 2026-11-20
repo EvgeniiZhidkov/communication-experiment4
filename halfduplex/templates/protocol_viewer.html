@@ -8,6 +8,7 @@
     :root{color-scheme:light;--ink:#172b3a;--muted:#647580;--line:#dce2df;--paper:#f4f3ee;--teal:#147d83;--red:#b63838}
     *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
     header{background:var(--ink);color:#fff;padding:28px max(24px,calc((100vw - 1420px)/2));border-bottom:4px solid #95c5ba}
+    .results-link{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px;color:#d5f1eb;font-weight:600;text-underline-offset:.2em}
     .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a7ccc7}h1{font-size:30px;line-height:1.2;font-weight:600;margin:9px 0}
     header p{margin:0;color:#c5d4d9;font-size:14px}main{max-width:1468px;margin:auto;padding:26px 24px 50px}
     .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.stat{padding:17px 20px;background:white;border:1px solid var(--line);border-radius:8px}
@@ -33,11 +34,12 @@
     .empty{padding:45px 20px;text-align:center;color:var(--muted)}.hidden,[hidden]{display:none!important}footer{margin-top:24px;color:var(--muted);font-size:12px}
     @media(max-width:900px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}#episode{min-width:240px}h1{font-size:25px}}
     @media(max-width:520px){main{padding:18px 12px}.toolbar{padding:12px}#episode{min-width:0;width:100%}.episode-control{width:100%}.stat{padding:13px}.card-head{flex-wrap:wrap}}
-    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p,.eyebrow{color:var(--muted)}main{padding:12px}.toolbar,.summary,.exports,details,footer{display:none}.diagrams,.diagrams.side-by-side{display:block;overflow:visible}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{width:100%;min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
+    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p,.eyebrow{color:var(--muted)}main{padding:12px}.results-link,.toolbar,.summary,.exports,details,footer{display:none}.diagrams,.diagrams.side-by-side{display:block;overflow:visible}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{width:100%;min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
   </style>
 </head>
 <body>
 <header>
+  __RESULTS_LINK__
   <div class="eyebrow">Communication experiment / E4</div>
   <h1>Протокол обмена</h1>
   <p id="run-label"></p>
