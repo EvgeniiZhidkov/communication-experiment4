@@ -142,7 +142,10 @@ def analyze_run(source, report=None) -> dict:
             continue
         if run_complete:
             raise ValueError("После завершения прогона обнаружены новые решения.")
-        if kind == "episode" and config.experiment == "episode":
+        if kind == "episode.timeout" and config.experiment == "episode":
+            counts["timeout"] += 1
+            _write(report, kind, **{k: v for k, v in row.items() if k != "type"})
+        elif kind == "episode" and config.experiment == "episode":
             actual = restore_episode(row, config.channel)
             expected = play(config.n, row["x"], row["y"], reference, reference,
                             channel=config.channel, max_rounds=config.implementation.rounds(config.n))
@@ -192,6 +195,8 @@ def analyze_run(source, report=None) -> dict:
         summary = {"next_action_accuracy": metric(correct["action"], counts["action"]),
                    "output_accuracy": metric(correct["output"], counts["output"]),
                    "decision_accuracy": metric(sum(correct.values()), sum(counts.values())), "errors": dict(errors)}
+    if counts["timeout"]:
+        summary["timed_out_episodes"] = counts["timeout"]
     summary["run_complete"] = run_complete
     _write(report, "summary", **summary)
     return summary

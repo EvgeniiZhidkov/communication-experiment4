@@ -50,6 +50,13 @@ class RunConfig:
     codex_executable: str = "codex"
     fsync: bool = True
     jobs: int = 1
+    self_check: bool = False
+    explain_deviations: bool = False
+    record_calculations: bool = False
+    track_bob_accumulator: bool = False
+    allow_bob_accumulator_correction: bool = False
+    track_alice_second_pass: bool = False
+    track_alice_accumulator: bool = False
 
     def __post_init__(self):
         protocol, task, channel = resolve_selection(self.protocol, self.task, self.channel)
@@ -94,6 +101,30 @@ class RunConfig:
             raise ValueError("round_limit должно быть неотрицательным целым числом.")
         if not isinstance(self.fsync, bool):
             raise ValueError("fsync должно быть логическим значением True или False.")
+        if not isinstance(self.self_check, bool) or not isinstance(self.explain_deviations, bool):
+            raise ValueError("self_check и explain_deviations должны быть логическими значениями.")
+        if self.explain_deviations and self.experiment != "episode":
+            raise ValueError("explain_deviations поддерживается в режиме episode.")
+        if not isinstance(self.record_calculations, bool):
+            raise ValueError("record_calculations должно быть логическим значением.")
+        if self.record_calculations and self.implementation.name != "ip_zero":
+            raise ValueError("record_calculations поддерживается для ip_zero.")
+        if not isinstance(self.track_bob_accumulator, bool):
+            raise ValueError("track_bob_accumulator должно быть логическим значением.")
+        if self.track_bob_accumulator and (not self.record_calculations or self.experiment != "episode"):
+            raise ValueError("track_bob_accumulator требует record_calculations=True в режиме episode.")
+        if not isinstance(self.allow_bob_accumulator_correction, bool):
+            raise ValueError("allow_bob_accumulator_correction должно быть логическим значением.")
+        if self.allow_bob_accumulator_correction and not self.track_bob_accumulator:
+            raise ValueError("allow_bob_accumulator_correction требует track_bob_accumulator=True.")
+        if not isinstance(self.track_alice_second_pass, bool):
+            raise ValueError("track_alice_second_pass должно быть логическим значением.")
+        if self.track_alice_second_pass and (not self.record_calculations or self.experiment != "episode"):
+            raise ValueError("track_alice_second_pass требует record_calculations=True в режиме episode.")
+        if not isinstance(self.track_alice_accumulator, bool):
+            raise ValueError("track_alice_accumulator должно быть логическим значением.")
+        if self.track_alice_accumulator and (not self.record_calculations or self.experiment != "episode"):
+            raise ValueError("track_alice_accumulator требует record_calculations=True в режиме episode.")
 
     @property
     def implementation(self) -> Protocol:

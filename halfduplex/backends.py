@@ -14,14 +14,50 @@ from pathlib import Path
 from uuid import uuid4
 
 from .config import PlayerConfig, RunConfig
-from .core import View
+from .core import ACTIONS, ALICE, ANSWERS, BOB, View
 from .logging import RunLog, utc_now
-from .prompts import render_followup, render_prompt
+from .prompts import (
+    alice_tracks_accumulator, alice_tracks_second_pass, calculation_instructions, render_followup, render_prompt,
+)
 
 # No shell: Python is provided by the single, isolated MCP tool below.
 DISABLED_FEATURES = ("shell_tool", "apps", "plugins", "browser_use", "browser_use_external",
                      "browser_use_full_cdp_access", "computer_use", "image_generation", "view_image",
                      "multi_agent", "skill_search", "hooks", "memories", "goals", "tool_suggest")
+CALCULATION_REPLY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "calculation": {"type": "string"},
+        "action": {"type": "string", "enum": sorted(ACTIONS | ANSWERS)},
+    },
+    "required": ["calculation", "action"],
+    "additionalProperties": False,
+}
+ACCUMULATOR_FIELDS = ("accumulator_before", "accumulator_after")
+ACCUMULATOR_REPLY_SCHEMA = {
+    **CALCULATION_REPLY_SCHEMA,
+    "properties": {
+        **{field: {"type": "integer", "enum": [0, 1]} for field in ACCUMULATOR_FIELDS},
+        **CALCULATION_REPLY_SCHEMA["properties"],
+    },
+    "required": [*ACCUMULATOR_FIELDS, *CALCULATION_REPLY_SCHEMA["required"]],
+}
+POSITIONS_REPLY_SCHEMA = {
+    **CALCULATION_REPLY_SCHEMA,
+    "properties": {
+        "remaining_positions": {"type": "array", "items": {"type": "integer"}},
+        **CALCULATION_REPLY_SCHEMA["properties"],
+    },
+    "required": ["remaining_positions", *CALCULATION_REPLY_SCHEMA["required"]],
+}
+ACCUMULATOR_POSITIONS_REPLY_SCHEMA = {
+    **POSITIONS_REPLY_SCHEMA,
+    "properties": {
+        **{field: ACCUMULATOR_REPLY_SCHEMA["properties"][field] for field in ACCUMULATOR_FIELDS},
+        **POSITIONS_REPLY_SCHEMA["properties"],
+    },
+    "required": [*ACCUMULATOR_FIELDS, *POSITIONS_REPLY_SCHEMA["required"]],
+}
 
 
 def tool_policy(allow_python: bool) -> dict:
@@ -33,12 +69,17 @@ def tool_policy(allow_python: bool) -> dict:
 
 
 def command_for(executable: str, player: PlayerConfig, *, workspace: Path, reply_path: Path,
-                python_log: Path, session_id: str | None, persistent: bool) -> list[str]:
+                python_log: Path, session_id: str | None, persistent: bool,
+                fork: bool = False, output_schema: Path | None = None) -> list[str]:
+    if fork and (not session_id or not persistent):
+        raise RuntimeError("Для отдельной ветки нужна сохранённая сессия.")
     command = [executable, "--ask-for-approval", "never", "exec", "--sandbox", "read-only"]
     if session_id:
-        command.append("resume")
+        command.append("fork" if fork else "resume")
     command += ["--ignore-user-config", "--ignore-rules", "--skip-git-repo-check", "--json",
                 "--output-last-message", str(reply_path)]
+    if output_schema is not None:
+        command += ["--output-schema", str(output_schema)]
     for name in DISABLED_FEATURES:
         command += ["--disable", name]
     settings = {
@@ -108,6 +149,22 @@ class CodexPlayer:
         self.workspace.mkdir(mode=0o700)
         self.home = self.root / "codex"
         self.home.mkdir(mode=0o700)
+        self.calculation_schema = self.root / "calculation.schema.json"
+        self.accumulator_schema = self.root / "accumulator.schema.json"
+        self.positions_schema = self.root / "positions.schema.json"
+        self.reply_schemas = {}
+        if config.record_calculations:
+            self.reply_schemas[self.calculation_schema] = (
+                ACCUMULATOR_REPLY_SCHEMA if config.track_bob_accumulator and role == BOB else CALCULATION_REPLY_SCHEMA
+            )
+        if config.track_alice_accumulator and role == ALICE:
+            self.reply_schemas[self.accumulator_schema] = ACCUMULATOR_REPLY_SCHEMA
+        if config.track_alice_second_pass and role == ALICE:
+            self.reply_schemas[self.positions_schema] = (
+                ACCUMULATOR_POSITIONS_REPLY_SCHEMA if config.track_alice_accumulator else POSITIONS_REPLY_SCHEMA
+            )
+        for path, schema in self.reply_schemas.items():
+            path.write_text(json.dumps(schema), encoding="utf-8")
         # Carry authentication only; never inherit plugins, skills, sessions or user config.
         auth_source = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "auth.json"
         self.auth_copied = auth_source.is_file()
@@ -131,9 +188,43 @@ class CodexPlayer:
             raise ValueError("Игрок получил чужую роль.")
         prompt = (render_followup(self.config, view) if self.persistent and self.session_id
                   else render_prompt(self.config, view, persistent=self.persistent))
-        return self.turn(prompt, position=view.round_number)
+        output_schema = None
+        if alice_tracks_second_pass(self.config, view):
+            output_schema = self.positions_schema
+        elif alice_tracks_accumulator(self.config, view):
+            output_schema = self.accumulator_schema
+        elif calculation_instructions(self.config, view) is not None:
+            output_schema = self.calculation_schema
+        return self.turn(prompt, position=view.round_number, output_schema=output_schema)
 
-    def turn(self, prompt: str, *, position: int = 0) -> str:
+    def _calculation_action(self, reply: str, *, call_id: str, position: int, output_schema: Path) -> str:
+        try:
+            body = json.loads(reply)
+        except json.JSONDecodeError:
+            body = None
+        fields = {**self.episode_context, "call_id": call_id, "role": self.role, "round": position}
+        required = self.reply_schemas[output_schema]["required"]
+        if isinstance(body, dict) and list(body) == required:
+            calculation, action = body["calculation"], body["action"]
+            state = {name: body[name] for name in required[:-2]}
+            remaining = state.get("remaining_positions", [])
+            valid_positions = isinstance(remaining, list) and all(type(index) is int for index in remaining)
+            valid_bits = all(type(state[field]) is int and state[field] in (0, 1)
+                             for field in ACCUMULATOR_FIELDS if field in state)
+            if (isinstance(calculation, str) and calculation.strip()
+                    and isinstance(action, str) and action in ACTIONS | ANSWERS
+                    and valid_positions and valid_bits):
+                if self.log.calculations is not None:
+                    self.log.calculations.emit("decision.calculation", **fields,
+                                               **state, calculation=calculation, action=action)
+                return action
+        if self.log.calculations is not None:
+            self.log.calculations.emit("decision.calculation_invalid", **fields, raw_reply=reply)
+        return "[Некорректный формат расчёта]"
+
+    def turn(self, prompt: str, *, position: int = 0, fork: bool = False,
+             output_schema: Path | None = None) -> str:
+        session_id = self.session_id
         call_id = f"{self.role.lower()}_{uuid4().hex}"
         call_dir = self.log.directory / "calls" / call_id
         call_dir.mkdir()
@@ -141,11 +232,16 @@ class CodexPlayer:
         prompt_path.write_text(prompt, encoding="utf-8")
         command = command_for(self.executable, self.player, workspace=self.workspace,
                               reply_path=reply_path, python_log=call_dir / "python.jsonl",
-                              session_id=self.session_id, persistent=self.persistent)
+                              session_id=session_id, persistent=self.persistent, fork=fork,
+                              output_schema=output_schema)
         metadata = {**self.episode_context, "call_id": call_id, "role": self.role, "position": position,
-                    "session_id_before": self.session_id, "command": command, "cwd": str(self.workspace),
+                    "session_id_before": session_id, "command": command, "cwd": str(self.workspace),
                     "requested_model": self.player.model, "policy": tool_policy(self.player.allow_python),
                     "started_utc": utc_now()}
+        if fork:
+            metadata["purpose"] = "deviation_explanation"
+        if output_schema is not None:
+            metadata["response_format"] = "calculation"
         (call_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
         self._emit("model.started", **metadata)
         started = time.monotonic()
@@ -153,6 +249,7 @@ class CodexPlayer:
         process = None
 
         def consume(pipe, name):
+            nonlocal session_id
             try:
                 with (call_dir / name).open("w", encoding="utf-8") as stream:
                     for line in pipe:
@@ -166,7 +263,9 @@ class CodexPlayer:
                             self._emit("cli.unparsed_stdout", call_id=call_id, line=line)
                             continue
                         if event.get("type") == "thread.started" and self.persistent:
-                            self.session_id = event.get("thread_id")
+                            session_id = event.get("thread_id")
+                            if not fork:
+                                self.session_id = session_id
                         audit = audit_event(event, self.player.allow_python)
                         if audit:
                             self._emit("tool.observed", call_id=call_id, role=self.role, **audit)
@@ -213,10 +312,15 @@ class CodexPlayer:
                 raise RuntimeError(f"Codex CLI: код {process.returncode}. Диагностика: {call_dir}\n{details}")
             if not reply_path.is_file():
                 raise RuntimeError(f"CLI не сохранил итоговый ответ. Диагностика: {call_dir}")
-            if self.persistent and not self.session_id:
+            if self.persistent and not session_id:
                 raise RuntimeError("CLI не сообщил идентификатор беседы.")
+            if fork and session_id == self.session_id:
+                raise RuntimeError("CLI не сообщил идентификатор отдельной ветки.")
+            reply = reply_path.read_text(encoding="utf-8")
+            if output_schema is not None:
+                reply = self._calculation_action(reply, call_id=call_id, position=position, output_schema=output_schema)
             outcome = "completed"
-            return reply_path.read_text(encoding="utf-8")
+            return reply
         except BaseException as exc:
             self._emit("model.error", call_id=call_id, role=self.role, error=type(exc).__name__, message=str(exc))
             raise
@@ -231,7 +335,7 @@ class CodexPlayer:
                     if pipe and not pipe.closed:
                         pipe.close()
             metadata.update(outcome=outcome, returncode=process.returncode if process else None,
-                            elapsed_seconds=time.monotonic() - started, session_id_after=self.session_id)
+                            elapsed_seconds=time.monotonic() - started, session_id_after=session_id)
             (call_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
             self._emit("model.finished", **metadata)
 

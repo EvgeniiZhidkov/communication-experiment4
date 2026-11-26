@@ -5,12 +5,13 @@ import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from subprocess import TimeoutExpired
 from threading import Event
 from unittest.mock import patch
 
 from halfduplex import PlayerConfig, RunConfig, analyze_file, analyze_run, input_pairs, run_experiment
 from halfduplex.core import View
-from halfduplex.experiment import _run_episode
+from halfduplex.experiment import _players, _run_episode
 from halfduplex.prompts import render_prompt
 
 
@@ -114,9 +115,10 @@ class ExperimentTests(unittest.TestCase):
 
         def run_game(config, log, case_index, x, y, repeat, stop):
             if case_index == 0:
-                _run_episode(config, log, case_index, x, y, repeat, stop)
+                recorded = _run_episode(config, log, case_index, x, y, repeat, stop)
                 saved.set()
                 self.assertTrue(stop.wait(timeout=5))
+                return recorded
             else:
                 self.assertEqual(case_index, 1)
                 self.assertTrue(saved.wait(timeout=5))
@@ -132,6 +134,29 @@ class ExperimentTests(unittest.TestCase):
             summary = json.loads((run / "summary.json").read_text())
             self.assertFalse(summary["run_complete"])
             self.assertEqual(summary["exact_execution"]["total"], 1)
+
+    def test_episode_timeout_preserves_the_other_results(self):
+        def timeout(view):
+            raise TimeoutExpired("test-codex", 120)
+
+        def players(config, log, stack, *, persistent, episode_context):
+            result = _players(config, log, stack, persistent=persistent, episode_context=episode_context)
+            if episode_context["case_index"] == 0:
+                result["Bob"] = timeout
+            return result
+
+        for jobs in (1, 4):
+            with self.subTest(jobs=jobs), tempfile.TemporaryDirectory() as directory, \
+                    patch("halfduplex.experiment._players", players):
+                result = self.run_quietly(self.config(directory, case_limit=5, jobs=jobs))
+                self.assertFalse(result.summary["run_complete"])
+                self.assertEqual(result.summary["timed_out_episodes"], 1)
+                self.assertEqual(result.summary["joint_accuracy"], {"count": 4, "total": 4, "rate": 1.0})
+                rows = [json.loads(line) for line in result.log_path.read_text().splitlines()]
+                self.assertEqual([r["case_index"] for r in rows if r["type"] == "episode.timeout"], [0])
+                self.assertEqual(sorted(r["case_index"] for r in rows if r["type"] == "episode"), [1, 2, 3, 4])
+                with result.report_path.open() as stream:
+                    self.assertEqual(result.summary, analyze_run(stream))
 
     def test_interrupted_and_truncated_logs(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -5,11 +5,22 @@ import inspect
 import json
 
 from .config import RunConfig
-from .core import View, function_bit
+from .core import ALICE, View, function_bit
 from .protocols import (
     DISJ_ALPHA, DISJ_DENOMINATOR, IP_ZERO_PARTNER, IP_ZERO_TRIGGERS, LocalMove,
     baseline, capacity_width, eq_zero, replay_local_steps, run_subprotocol, transmit_number,
 )
+
+SELF_CHECK = ("Перед ходом самостоятельно восстанови нужные промежуточные значения "
+              "из своего входа и локальной истории. Проверь, что выбранное действие "
+              "соответствует правилу текущего раунда.")
+EXPLAIN_PREVIOUS_MOVE = (
+    "Коротко укажи, какие промежуточные значения ты использовал для предыдущего хода "
+    "и какое правило применил. Если не помнишь или не уверен в значении, так и скажи. "
+    "Оставь предыдущий ход как есть. На этот вопрос ответь обычным текстом."
+)
+TOKEN_REPLY = "Верни ровно один токен: SEND_0, SEND_1, LISTEN, ANSWER_0 или ANSWER_1."
+ACTION_FIELD = "В action допустимы SEND_0, SEND_1, LISTEN, ANSWER_0 или ANSWER_1. Без Markdown."
 
 DESCRIPTIONS = {
     "send_x_then_result": """Первые n раундов: Alice отправляет биты x слева направо, Bob слушает.
@@ -127,6 +138,140 @@ def format_input(bits: str, kind: str) -> tuple[str, str]:
     return json.dumps(positions), "Список позиций единиц, индексы с 1 слева; остальные позиции нулевые."
 
 
+def _bob_accumulator_instructions(config: RunConfig, view: View) -> str:
+    if view.round_number == 3:
+        transition = (
+            "Первый проход начинается. Самостоятельно вычисли начальный аккумулятор "
+            "как чётность числа своих пар 11. Запиши этот бит в accumulator_before "
+            "и accumulator_after. Два раунда объявления пары в обновление не входят."
+        )
+    else:
+        before = "Возьми свой accumulator_after из предыдущего ответа и запиши его в accumulator_before. "
+        finish = ""
+        if config.allow_bob_accumulator_correction:
+            before += (
+                "До отправки итогового бита, если заметил ошибку в своей записи, пересчитай аккумулятор "
+                "из своего входа и истории проходов до предыдущего раунда, исключая этот раунд. "
+                "Запиши исправленное значение в accumulator_before. В calculation укажи старый бит, "
+                "исправленный бит и причину. Уже сделанные ходы и полученные наблюдения используй как факты. "
+            )
+            finish = " После отправки итогового бита заверши игру с тем битом, который уже отправил."
+        transition = (
+            f"{before}"
+            "Если предыдущий раунд был частью прохода, примени правило обновления "
+            "к наблюдению именно того раунда. Если предыдущий раунд был вне проходов, "
+            "сохрани прежний бит. Запиши итог в accumulator_after. Для отправки результата "
+            f"вычисли XOR accumulator_after и полученного от Alice бита.{finish}"
+        )
+    return (
+        f'{transition} Верни один JSON-объект с полями в порядке "accumulator_before", '
+        '"accumulator_after", "calculation", "action". Два поля аккумулятора содержат по одному '
+        'целому биту. В calculation укажи причину обновления или сохранения аккумулятора, '
+        'текущую фазу и значения для хода. В action запиши выбранный токен. '
+        + ACTION_FIELD
+    )
+
+
+def alice_tracks_second_pass(config: RunConfig, view: View) -> bool:
+    return (config.track_alice_second_pass and view.role == ALICE and config.alice.backend == "codex"
+            and view.round_number >= 3 + (config.n + 1) // 2)
+
+
+def alice_tracks_accumulator(config: RunConfig, view: View) -> bool:
+    return (config.track_alice_accumulator and view.role == ALICE and config.alice.backend == "codex"
+            and view.round_number >= 3)
+
+
+def _alice_second_pass_update(config: RunConfig, view: View) -> str:
+    if view.round_number == 3 + (config.n + 1) // 2:
+        update = (
+            "Первый проход завершён. По своей истории составь список исходных позиций пар, "
+            "где ты слушала и получила 0 именно в первом проходе. Нумерация начинается с 1. "
+            "Запиши позиции в исходном порядке в remaining_positions."
+        )
+    else:
+        update = (
+            "Возьми remaining_positions из своего предыдущего ответа. Если в предыдущем раунде "
+            "ты обработала позицию второго прохода, убери первую позицию из списка. "
+            "Запиши оставшиеся позиции перед текущим ходом в remaining_positions."
+        )
+    return (
+        f"{update} Если в списке есть позиции, сейчас обработай только первую по правилу второго прохода. "
+        "Если список пуст и ты ещё не передавала аккумулятор, передай его сейчас. "
+        "После передачи аккумулятора слушай результат Bob, затем выдай итоговое решение. "
+    )
+
+
+def _alice_second_pass_instructions(config: RunConfig, view: View) -> str:
+    return (
+        _alice_second_pass_update(config, view)
+        + 'Верни один JSON-объект с полями в порядке "remaining_positions", "calculation", "action". '
+        "В remaining_positions укажи список целых номеров позиций, в calculation — текущую фазу "
+        "и использованные локальные значения, в action — выбранный токен. "
+        + ACTION_FIELD
+    )
+
+
+def _alice_accumulator_instructions(config: RunConfig, view: View) -> str:
+    if view.round_number == 3:
+        transition = (
+            "Начинается первый проход. Посчитай свои пары 11 и запиши чётность их числа "
+            "в оба поля аккумулятора."
+        )
+    else:
+        transition = (
+            "Возьми accumulator_after из своего предыдущего ответа как accumulator_before. "
+            "Обнови бит по наблюдению в предыдущем раунде. Инвертируй его ровно тогда, когда "
+            "предыдущий раунд был частью прохода, ты получила 1 и пара из правила Bob для "
+            "этого прохода была партнёром твоей пары в той позиции. В остальных случаях "
+            "сохрани бит. Запиши итог в accumulator_after."
+        )
+    second_pass = alice_tracks_second_pass(config, view)
+    positions_update = _alice_second_pass_update(config, view) if second_pass else ""
+    positions_field = ', "remaining_positions"' if second_pass else ""
+    return (
+        f"{transition} При отправке своего аккумулятора передай accumulator_after. "
+        f"{positions_update}"
+        f'Верни один JSON-объект с полями в порядке "accumulator_before", '
+        f'"accumulator_after"{positions_field}, "calculation", "action". '
+        "В обоих полях аккумулятора запиши целый бит. В calculation кратко укажи фазу, "
+        "свои промежуточные значения и причину инверсии или сохранения бита. "
+        "В action запиши выбранный токен. "
+        + ACTION_FIELD
+    )
+
+
+def calculation_instructions(config: RunConfig, view: View) -> str | None:
+    if not config.record_calculations:
+        return None
+    if view.role == ALICE:
+        if alice_tracks_accumulator(config, view):
+            return _alice_accumulator_instructions(config, view)
+        if alice_tracks_second_pass(config, view):
+            return _alice_second_pass_instructions(config, view)
+        if config.alice.backend != "codex" or view.round_number > 2:
+            return None
+        details = "Дополни вход при необходимости. Запиши пары, их частоты и выбранную пару."
+    else:
+        if config.bob.backend != "codex":
+            return None
+        if config.track_bob_accumulator:
+            return _bob_accumulator_instructions(config, view) if view.round_number > 2 else None
+        if view.round_number <= 2 + (config.n + 1) // 2:
+            return None
+        details = (
+            "Определи текущую фазу. Во втором проходе запиши оставшиеся позиции, текущую позицию, "
+            "свою пару и пару из правила. Перед отправкой результата запиши свой аккумулятор, "
+            "полученный от Alice бит и результат XOR. Для остальных фаз укажи локальные значения, "
+            "которые использовал для хода."
+        )
+    return (
+        f"{details} Верни один JSON-объект. Сначала запиши эти промежуточные значения коротким "
+        'текстом в поле "calculation", затем запиши токен действия в поле "action". '
+        + ACTION_FIELD
+    )
+
+
 def render_prompt(config: RunConfig, view: View, *, persistent: bool = False) -> str:
     encoded, meaning = format_input(view.own_input, config.input_format)
     task = {"ip": "IP: чётность числа позиций с двумя единицами.",
@@ -163,6 +308,8 @@ def render_prompt(config: RunConfig, view: View, *, persistent: bool = False) ->
     settings = config.alice if view.role == "Alice" else config.bob
     tools = ("Можно использовать инструмент python для локальных вычислений."
              if settings.allow_python else "Вычислительные инструменты отключены.")
+    self_check = SELF_CHECK + "\n" if config.self_check else ""
+    reply = calculation_instructions(config, view) or (TOKEN_REPLY + "\nБез пояснений, кавычек и Markdown.")
     return f"""Ты исполняешь роль {view.role} в полудуплексном протоколе. n={config.n}.
 Alice знает только x, Bob знает только y. {task}
 В раунде оба независимо выбирают SEND_0, SEND_1 или LISTEN.
@@ -182,15 +329,15 @@ ANSWER_0/ANSWER_1 — отдельное итоговое решение без 
 Сейчас нужно решение для позиции {view.round_number}. Применяй заданные правила,
 включая локальные условия остановки. При продолжении беседы сохраняй свою историю.
 {tools} Интернет недоступен.
-Верни ровно один токен: SEND_0, SEND_1, LISTEN, ANSWER_0 или ANSWER_1.
-Без пояснений, кавычек и Markdown."""
+{self_check}{reply}"""
 
 
 def render_followup(config: RunConfig, view: View) -> str:
     t = view.history[-1]
     observation = t.observation if t.observation is not None else "нет"
+    self_check = SELF_CHECK + " " if config.self_check else ""
+    reply = calculation_instructions(config, view) or TOKEN_REPLY
     return (f"Раунд {len(view.history)} завершён. Твоё действие: {t.action}. "
             f"Твоё наблюдение: {observation}.\n"
             f"Выбери решение для позиции {view.round_number} по заданному протоколу, "
-            "включая условие остановки. Верни ровно один токен: "
-            "SEND_0, SEND_1, LISTEN, ANSWER_0 или ANSWER_1.")
+            f"включая условие остановки. {self_check}{reply}")

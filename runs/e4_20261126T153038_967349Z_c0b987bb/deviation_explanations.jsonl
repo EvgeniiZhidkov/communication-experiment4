@@ -1,0 +1,1 @@
+{"type": "deviation.explanation", "time_utc": "2026-11-26T15:43:44.445071+00:00", "case_index": 28, "repeat": 1, "x": "11000", "y": "10110", "role": "Bob", "round": 8, "expected": "SEND_1", "actual": "SEND_0", "explanation": "Мой аккумулятор был 1, и в раунде 7 я получил от Alice бит 1. По правилу отправил XOR этих значений: 1 ⊕ 1 = 0. Предыдущий ход — SEND_0."}

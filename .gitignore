@@ -11,6 +11,8 @@ __pycache__/
 !/runs/**/journal.jsonl
 !/runs/**/report.jsonl
 !/runs/**/summary.json
+!/runs/**/calculations.jsonl
+!/runs/**/deviation_explanations.jsonl
 !/runs/**/journal_analysis_*.jsonl
 !/runs/**/plots.png
 !/runs/**/tool_audit.json

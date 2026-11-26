@@ -18,7 +18,7 @@ from .backends import CodexPlayer, tool_policy
 from .config import PlayerConfig, RunConfig
 from .core import ALICE, BOB, View, play
 from .logging import RunLog, source_manifest
-from .prompts import render_prompt
+from .prompts import EXPLAIN_PREVIOUS_MOVE, render_prompt
 from .python_tool import PythonSandbox
 
 
@@ -94,7 +94,7 @@ def _players(config: RunConfig, log: RunLog, stack: ExitStack, *, persistent: bo
 
 
 def _run_episode(config: RunConfig, log: RunLog, case_index: int, x: str, y: str, repeat: int,
-                 stop: Event | None = None) -> None:
+                 stop: Event | None = None) -> bool:
     episode_context = {"case_index": case_index, "repeat": repeat}
     context = {**episode_context, "x": x, "y": y}
 
@@ -102,28 +102,54 @@ def _run_episode(config: RunConfig, log: RunLog, case_index: int, x: str, y: str
         log.events.emit(kind, **context, **fields)
 
     emit("episode.started")
+    explanations = log.deviation_explanations
+    reference = reference_player(config) if explanations is not None else None
+    deviated = False
     with ExitStack() as stack:
         players = _players(config, log, stack, persistent=True, episode_context=episode_context)
 
         def choose(view):
+            nonlocal deviated
             if stop is not None and stop.is_set():
                 raise CancelledError()
-            return players[view.role](view)
+            player = players[view.role]
+            raw_reply = player(view)
+            if explanations is not None and not deviated:
+                expected = reference(view)
+                deviated = raw_reply.strip() != expected
+                if deviated and isinstance(player, CodexPlayer):
+                    detail = {**context, "role": view.role, "round": view.round_number,
+                              "expected": expected, "actual": raw_reply}
+                    try:
+                        explanation = player.turn(EXPLAIN_PREVIOUS_MOVE, position=view.round_number, fork=True)
+                    except (OSError, RuntimeError, subprocess.SubprocessError) as exc:
+                        explanations.emit("deviation.explanation_failed", **detail,
+                                          error=type(exc).__name__, message=str(exc))
+                    else:
+                        explanations.emit("deviation.explanation", **detail, explanation=explanation.strip())
+            return raw_reply
 
-        episode = play(config.n, x, y, choose, choose, channel=config.channel,
-                       max_rounds=config.max_rounds, emit=emit)
+        try:
+            episode = play(config.n, x, y, choose, choose, channel=config.channel,
+                           max_rounds=config.max_rounds, emit=emit)
+        except subprocess.TimeoutExpired as exc:
+            log.journal.emit("episode.timeout", **context, timeout_seconds=exc.timeout)
+            emit("episode.timeout", timeout_seconds=exc.timeout)
+            return False
         log.journal.emit("episode", **context, **episode.record())
         emit("episode.finished", status=episode.status)
+        return True
 
 
-def _run_episodes(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> None:
+def _run_episodes(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> int:
     games = ((i, x, y, repeat) for i, (x, y) in enumerate(pairs)
              for repeat in range(1, config.repeats + 1))
     workers = min(config.jobs, len(pairs) * config.repeats)
+    timed_out = 0
     if workers <= 1:
         for game in games:
-            _run_episode(config, log, *game)
-        return
+            timed_out += not _run_episode(config, log, *game)
+        return timed_out
 
     stop = Event()
     with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -137,7 +163,7 @@ def _run_episodes(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) 
                     break
                 finished, pending = wait(pending, return_when=FIRST_COMPLETED)
                 for future in finished:
-                    future.result()
+                    timed_out += not future.result()
                 free_slots = len(finished)
         except BaseException:
             # Let in-flight requests finish. Workers stop before sending another one,
@@ -146,6 +172,7 @@ def _run_episodes(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) 
             for future in pending:
                 future.cancel()
             raise
+    return timed_out
 
 
 def _run_steps(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> None:
@@ -168,7 +195,8 @@ def _run_steps(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> 
 
 
 def run_experiment(config: RunConfig) -> RunResult:
-    log = RunLog(config.output_dir, fsync=config.fsync)
+    log = RunLog(config.output_dir, fsync=config.fsync, explain_deviations=config.explain_deviations,
+                 record_calculations=config.record_calculations)
     print(f"Каталог прогона: {log.directory}", flush=True)
     header = {"schema_version": 2, "mode": config.experiment, "protocol": config.protocol,
               "implementation": config.implementation.name,
@@ -199,11 +227,15 @@ def run_experiment(config: RunConfig) -> RunResult:
                 manifest["python_preflight"] = PythonSandbox().preflight()
                 log.events.emit("python.preflight", **manifest["python_preflight"])
         (log.directory / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        timed_out = 0
         if config.experiment == "episode":
-            _run_episodes(config, log, pairs)
+            timed_out = _run_episodes(config, log, pairs)
         else:
             _run_steps(config, log, pairs)
-        log.journal.emit("completed")
+        if timed_out:
+            log.journal.emit("interrupted", timed_out_episodes=timed_out)
+        else:
+            log.journal.emit("completed")
     except BaseException as exc:
         failure = exc
         log.journal.emit("interrupted", error=type(exc).__name__, message=str(exc))

@@ -25,6 +25,20 @@ def main():
     run.add_argument("--bob-model")
     run.add_argument("--limit", type=int)
     run.add_argument("--jobs", type=int, help="Сколько игр одновременно запускать в режиме episode")
+    run.add_argument("--self-check", action=argparse.BooleanOptionalAction,
+                     help="Просить модель самостоятельно проверять вычисления перед ходом")
+    run.add_argument("--explain-deviations", action=argparse.BooleanOptionalAction,
+                     help="При первом отклонении спросить Codex о прошлом ходе в отдельной ветке")
+    run.add_argument("--record-calculations", action=argparse.BooleanOptionalAction,
+                     help="В ip_zero сохранять промежуточный расчёт перед выбором действия")
+    run.add_argument("--track-bob-accumulator", action=argparse.BooleanOptionalAction,
+                     help="В ip_zero записывать обновления аккумулятора Боба по ходу игры")
+    run.add_argument("--allow-bob-accumulator-correction", action=argparse.BooleanOptionalAction,
+                     help="Разрешить Бобу самому исправлять аккумулятор до отправки итогового бита")
+    run.add_argument("--track-alice-second-pass", action=argparse.BooleanOptionalAction,
+                     help="В ip_zero Алиса ведёт список оставшихся позиций второго прохода")
+    run.add_argument("--track-alice-accumulator", action=argparse.BooleanOptionalAction,
+                     help="В ip_zero записывать обновления аккумулятора Алисы по ходу игры")
     analyze = sub.add_parser("analyze", help="Пересчёт нового или старого JSONL-журнала")
     analyze.add_argument("log_path", type=Path)
     audit = sub.add_parser("audit-tools", help="Один реальный запрос с проверкой вызова Python")
@@ -70,9 +84,12 @@ def main():
                 config = replace(config, **{role: replace(getattr(config, role), model=model)})
         if args.limit is not None:
             config = replace(config, case_limit=args.limit)
-        if args.jobs is not None:
+        option_keys = ("jobs", "self_check", "explain_deviations", "record_calculations", "track_bob_accumulator",
+                       "allow_bob_accumulator_correction", "track_alice_second_pass", "track_alice_accumulator")
+        overrides = {key: getattr(args, key) for key in option_keys if getattr(args, key) is not None}
+        if overrides:
             try:
-                config = replace(config, jobs=args.jobs)
+                config = replace(config, **overrides)
             except ValueError as exc:
                 parser.error(str(exc))
         result = run_experiment(config).summary

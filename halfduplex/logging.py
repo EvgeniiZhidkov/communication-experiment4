@@ -36,7 +36,8 @@ class JsonlWriter:
 
 
 class RunLog:
-    def __init__(self, output_dir: str | Path, *, fsync: bool = True):
+    def __init__(self, output_dir: str | Path, *, fsync: bool = True,
+                 explain_deviations: bool = False, record_calculations: bool = False):
         root = Path(output_dir).resolve()
         root.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
@@ -45,10 +46,22 @@ class RunLog:
         (self.directory / "calls").mkdir()
         self.events = JsonlWriter(self.directory / "events.jsonl", fsync=fsync)
         self.journal = JsonlWriter(self.directory / "journal.jsonl", fsync=fsync)
+        self.deviation_explanations = (
+            JsonlWriter(self.directory / "deviation_explanations.jsonl", fsync=fsync)
+            if explain_deviations else None
+        )
+        self.calculations = (
+            JsonlWriter(self.directory / "calculations.jsonl", fsync=fsync)
+            if record_calculations else None
+        )
 
     def close(self):
         self.events.close()
         self.journal.close()
+        if self.deviation_explanations is not None:
+            self.deviation_explanations.close()
+        if self.calculations is not None:
+            self.calculations.close()
 
 
 def source_manifest() -> dict:

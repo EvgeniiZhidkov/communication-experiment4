@@ -8,7 +8,7 @@ from unittest.mock import patch
 from halfduplex import PlayerConfig, RunConfig, get_protocol
 from halfduplex.__main__ import main
 from halfduplex.core import View
-from halfduplex.prompts import render_prompt
+from halfduplex.prompts import render_followup, render_prompt
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -79,6 +79,24 @@ class ConfigurationTests(unittest.TestCase):
                         self.assertIn(f"def {cfg.implementation.choose.__name__}(", prompt)
                         if cfg.implementation.local_steps is not None:
                             self.assertIn(f"def {cfg.implementation.local_steps.__name__}(", prompt)
+
+    def test_bob_can_repair_only_his_own_accumulator_before_sending_result(self):
+        with self.assertRaisesRegex(ValueError, "track_bob_accumulator"):
+            RunConfig(task="ip", channel="zero", allow_bob_accumulator_correction=True)
+        control = RunConfig(n=12, task="ip", channel="zero", record_calculations=True,
+                            track_bob_accumulator=True)
+        repair = replace(control, allow_bob_accumulator_correction=True)
+        bob = View("Bob", "010111011100").after("LISTEN", "0").after("LISTEN", "1")
+        self.assertEqual(render_followup(repair, bob), render_followup(control, bob))
+        bob = bob.after("LISTEN", "0")
+        prompt = render_followup(repair, bob)
+        self.assertNotIn("если заметил ошибку", render_followup(control, bob))
+        self.assertIn("До отправки итогового бита, если заметил ошибку", prompt)
+        self.assertIn("исключая этот раунд", prompt)
+        self.assertIn("с тем битом, который уже отправил", prompt)
+        self.assertIn("Твоё наблюдение: 0", prompt)
+        alice = View("Alice", "000101000111").after("SEND_0", None)
+        self.assertEqual(render_followup(repair, alice), render_followup(control, alice))
 
     def test_reference_cli_accepts_separate_fields_and_legacy_names(self):
         cases = ((["--task", "eq", "--channel", "zero", "--protocol", "specialized"], "eq_zero"),
