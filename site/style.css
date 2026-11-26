@@ -32,8 +32,10 @@ h3 { font-size: clamp(1.75rem, 3.6vw, 2.8rem); font-weight: 650; }
 .topbar a { color: inherit; text-decoration: none; }
 .topbar a:hover { text-decoration: underline; }
 .topbar :focus-visible { outline-color: var(--teal); }
-.topbar .brand { color: var(--teal); font-size: 1.2rem; font-weight: 750; }
-.nav-links { display: flex; gap: clamp(0.75rem, 3vw, 1.75rem); align-items: center; }
+.topbar .brand { display: inline-flex; align-items: center; gap: 0.65rem; min-width: 0; }
+.brand-mark { color: var(--teal); font-size: 1.2rem; font-weight: 750; }
+.brand-title { font-size: 0.9rem; line-height: 1.2; font-weight: 600; }
+.nav-links { display: flex; flex-shrink: 0; gap: clamp(0.75rem, 3vw, 1.75rem); align-items: center; }
 
 main { padding-block: clamp(2rem, 5vw, 4rem); }
 #results { margin-block: clamp(1.6rem, 4vw, 3.25rem) clamp(2.5rem, 6vw, 5rem); }
@@ -81,6 +83,11 @@ select {
 
 @media (max-width: 52rem) {
   .run { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 42rem) {
+  :root { --header-height: 5.75rem; }
+  .topbar { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.45rem; padding-block: 0.65rem; }
+  .nav-links { font-size: 0.9rem; }
 }
 @media (max-width: 32rem) {
   .wrap { width: calc(100% - 2rem); }
