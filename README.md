@@ -292,17 +292,20 @@ python3 -m halfduplex run --config configs/ip_zero.json --jobs 4
 
 ## Результаты и проверки
 
-Сайт GitHub Pages собирает сохранённые прогоны из `results/` и показывает
-фактический обмен рядом с эталоном. Для локального просмотра:
+Сайт GitHub Pages собирает прогоны из [runs/](runs/). Выберите прогон,
+чтобы посмотреть метрики, скачать журнал или сравнить раунды с эталоном.
+Для локального просмотра:
 
 ```bash
 python3 -m pip install -r requirements-plots.txt
 python3 site/build_site.py
 ```
 
-Откройте `site/dist/index.html` в браузере. GitHub Actions публикует эту же сборку.
+Откройте `site/dist/index.html` в браузере. При пуше изменений в `runs/`
+GitHub Actions пересобирает сайт. Диаграммы на сайте доступны в SVG.
 
-Каждый запуск создаёт отдельный каталог `runs/e4_.../`:
+В имени каталога прогона указаны задача, канал, длина входа, сид и время запуска.
+Пример — `runs/e4_ip-zero_n64_seed53_20261126T204424_230000Z_45c46d15/`.
 
 | Файлы | Содержание |
 |---|---|
@@ -362,7 +365,7 @@ python3 -m halfduplex visualize runs/e4_.../journal.jsonl --episode 3 --output-d
 python3 -m halfduplex visualize runs/e4_.../report.jsonl --formats svg pdf --rounds-per-page 12
 
 # Поддерживаются и старые журналы из репозитория.
-python3 -m halfduplex visualize runs/experiment4_episode_20261109T221631_854494Z/experiment4_episode_20261109T221631_854494Z.jsonl --episode 1
+python3 -m halfduplex visualize runs/e4_ip-silence_n5_seed42_20261109T221631_854494Z/experiment4_episode_20261109T221631_854494Z.jsonl --episode 1
 ```
 
 Из Python или ноутбука:
@@ -394,11 +397,6 @@ print(exported.html_path)
 проверены на всех парах для `n=1..6`, дополнительно — 432 эпизода при `n` до 1024.
 Ноутбуки, CLI и графики также проверены. Перебор подтверждает конечные размеры;
 основания корректности для произвольного `n` даны в статьях.
-
-В [results/](results/) лежат два прогона Codex–Codex от 17 ноября 2026 года.
-Оба используют специализированный протокол при `n=4` и канале `silence`.
-Для IP и EQ верны оба ответа в 15/15 эпизодов, и все 15 исполнений точные.
-Среднее число раундов составляет 4 для IP и 3,67 для EQ.
 
 Архив всех прогонов находится в [runs/](runs/). Каждый прогон лежит в своей
 папке. В архив входят журналы, отчёты, настройки, снимки кода, сводные графики,

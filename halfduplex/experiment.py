@@ -195,8 +195,9 @@ def _run_steps(config: RunConfig, log: RunLog, pairs: list[tuple[str, str]]) -> 
 
 
 def run_experiment(config: RunConfig) -> RunResult:
+    label = f"{config.task}-{config.channel}_n{config.n}_seed{config.seed}"
     log = RunLog(config.output_dir, fsync=config.fsync, explain_deviations=config.explain_deviations,
-                 record_calculations=config.record_calculations)
+                 record_calculations=config.record_calculations, label=label)
     print(f"Каталог прогона: {log.directory}", flush=True)
     header = {"schema_version": 2, "mode": config.experiment, "protocol": config.protocol,
               "implementation": config.implementation.name,
@@ -256,7 +257,7 @@ def audit_tools(player: PlayerConfig | None = None, *, output_dir: str | Path = 
     settings = player or PlayerConfig()
     if settings.backend != "codex" or not settings.allow_python:
         raise ValueError("Аудит требует backend='codex', allow_python=True.")
-    log = RunLog(output_dir)
+    log = RunLog(output_dir, label="tool-audit")
     try:
         preflight = PythonSandbox().preflight()
         config = RunConfig(alice=settings, output_dir=output_dir)

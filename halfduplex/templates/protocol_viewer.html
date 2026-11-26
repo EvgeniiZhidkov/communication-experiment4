@@ -7,9 +7,11 @@
   <style>
     :root{color-scheme:light;--ink:#172b3a;--muted:#647580;--line:#dce2df;--paper:#f4f3ee;--teal:#147d83;--red:#b63838}
     *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
-    header{background:var(--ink);color:#fff;padding:28px max(24px,calc((100vw - 1420px)/2));border-bottom:4px solid #95c5ba}
-    .results-link{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px;color:#d5f1eb;font-weight:600;text-underline-offset:.2em}
-    .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a7ccc7}h1{font-size:30px;line-height:1.2;font-weight:600;margin:9px 0}
+    header,.results-nav{background:var(--ink);color:#fff;padding-inline:max(24px,calc((100vw - 1420px)/2))}
+    header{padding-block:18px 24px;border-bottom:4px solid #95c5ba}
+    .results-nav{position:sticky;top:0;z-index:5;border-bottom:1px solid #ffffff35}
+    .results-link{display:inline-flex;align-items:center;min-height:48px;color:#d5f1eb;font-weight:600;text-underline-offset:.2em}
+    h1{font-size:30px;line-height:1.2;font-weight:600;margin:0 0 5px}
     header p{margin:0;color:#c5d4d9;font-size:14px}main{max-width:1468px;margin:auto;padding:26px 24px 50px}
     .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}.stat{padding:17px 20px;background:white;border:1px solid var(--line);border-radius:8px}
     .stat b{display:block;font-size:25px;font-weight:600;line-height:1.2;margin-bottom:5px}.stat span{font-size:12px;color:var(--muted)}
@@ -26,21 +28,20 @@
     .card{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 18px;border-bottom:1px solid var(--line);font-size:16px;font-weight:600}
     .card-head span{font-size:14px;font-weight:400;color:var(--muted)}.svg-wrap{overflow:auto;padding:8px}
     .svg-wrap svg{display:block;width:calc(100% * var(--diagram-scale,1));height:auto;min-width:calc(var(--diagram-min-width,52rem) * var(--diagram-scale,1))}
-    .explanation{font-size:13px;color:var(--muted);margin:13px 0 23px}.explanation strong{color:var(--ink);font-weight:500}
+    .explanation{font-size:13px;color:var(--muted);margin:13px 0 23px}
     .exports{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 24px;font-size:13px}.exports .download{min-height:35px;padding:5px 12px}.exports select{min-height:35px;padding:5px 10px}
     details{background:white;border:1px solid var(--line);border-radius:7px;margin-top:14px}summary{padding:14px 18px;cursor:pointer;font-weight:500;font-size:14px}
     .table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:10px 13px;border-top:1px solid #e5eae8;vertical-align:top}th{color:var(--muted);font-weight:500;background:#fafbf9}
     tr.deviation td{background:#fff4e8}td code{font-size:11px;white-space:nowrap}.small{font-size:11px;color:var(--muted)}pre{margin:0;padding:18px;overflow:auto;font-size:12px;max-height:470px;white-space:pre-wrap;overflow-wrap:anywhere}
-    .empty{padding:45px 20px;text-align:center;color:var(--muted)}.hidden,[hidden]{display:none!important}footer{margin-top:24px;color:var(--muted);font-size:12px}
+    .empty{padding:45px 20px;text-align:center;color:var(--muted)}.hidden,[hidden]{display:none!important}
     @media(max-width:900px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}#episode{min-width:240px}h1{font-size:25px}}
     @media(max-width:520px){main{padding:18px 12px}.toolbar{padding:12px}#episode{min-width:0;width:100%}.episode-control{width:100%}.stat{padding:13px}.card-head{flex-wrap:wrap}}
-    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p,.eyebrow{color:var(--muted)}main{padding:12px}.results-link,.toolbar,.summary,.exports,details,footer{display:none}.diagrams,.diagrams.side-by-side{display:block;overflow:visible}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{width:100%;min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
+    @media print{header{background:white;color:var(--ink);padding:10px;border-bottom:1px solid var(--line)}header p{color:var(--muted)}main{padding:12px}.results-nav,.toolbar,.summary,.exports,details{display:none}.diagrams,.diagrams.side-by-side{display:block;overflow:visible}.card{break-inside:avoid;margin-bottom:15px}.svg-wrap svg{width:100%;min-width:0}.explanation{font-size:10px}.case{margin-top:0}}
   </style>
 </head>
 <body>
+__RESULTS_LINK__
 <header>
-  __RESULTS_LINK__
-  <div class="eyebrow">Communication experiment / E4</div>
   <h1>Протокол обмена</h1>
   <p id="run-label"></p>
 </header>
@@ -69,13 +70,12 @@
       <article class="card"><div class="card-head">Фактический обмен <span id="actual-status"></span></div><div id="actual-diagram" class="svg-wrap"></div></article>
       <article class="card" id="reference-card"><div class="card-head">Программный эталон <span>для тех же x и y</span></div><div id="reference-diagram" class="svg-wrap"></div></article>
     </div>
-    <p class="explanation"><strong>Читать сверху вниз.</strong> Стрелка — доставленный бит. Две встречные стрелки с крестом — столкновение, биты потеряны. Пунктир — оба слушают. <code>obs: —</code> означает отсутствие наблюдения; <code>0</code> и <code>SILENCE</code> различаются. Красная рамка — локальная ошибка или неверный ответ; охристая — отклонение от эталонной траектории. Столкновение само по себе может быть частью правильного алгоритма. Блок STOP показывает локальные решения и не расходует раунд связи. Названия фаз соответствуют номерам раундов эталонного алгоритма.</p>
+    <p class="explanation">Стрелка — доставленный бит. Крест — столкновение. Пунктир — оба слушают. Красная рамка — ошибка, охристая — отклонение от эталона.</p>
     <div class="exports"><span>Скачать страницу:</span><select id="export-kind" aria-label="Источник картинки"><option value="actual">Фактический обмен</option><option value="reference">Эталон</option></select><span id="download-links"></span><button id="download-svg">SVG</button><span class="small">SVG/PDF — векторные, PNG — 300 dpi по умолчанию. Подписи на английском для статьи.</span></div>
     <details open><summary>Раунды и наблюдения · текущая страница</summary><div class="table-wrap"><table><thead><tr><th>Раунд / фаза</th><th>Alice</th><th>Наблюдение Alice</th><th>Bob</th><th>Наблюдение Bob</th><th>Диагностика</th></tr></thead><tbody id="round-table"></tbody></table></div></details>
     <details><summary>Первое отклонение и локальные ошибки</summary><pre id="errors"></pre></details>
     <details><summary>JSON эпизода с диагностикой</summary><pre id="raw-json"></pre></details>
   </section>
-  <footer>Визуализация сохранённого JSONL. Оба входа показаны для исследователя; во время эксперимента каждый игрок видел только свой вход. Эталон вычислен программно. Этот HTML работает без сервера и внешних ресурсов; для ссылок на PDF/PNG сохраните рядом папку figures.</footer>
 </main>
 <script id="protocol-data" type="application/json">__PROTOCOL_DATA__</script>
 <script>
@@ -84,7 +84,7 @@ const data = JSON.parse(document.getElementById("protocol-data").textContent);
 const $ = id => document.getElementById(id);
 let visible = [], current = null;
 const percent = m => m?.rate == null ? "—" : `${(100*m.rate).toFixed(1)}% · ${m.count}/${m.total}`;
-$("run-label").textContent = `${data.task.toUpperCase()} · n=${data.n} · ${data.implementation} · channel=${data.channel} · ${data.source}`;
+$("run-label").textContent = `${data.task.toUpperCase()} · n=${data.n} · ${data.channel}`;
 $("total").textContent = data.summary.joint_accuracy.total;
 $("accuracy").textContent = percent(data.summary.joint_accuracy);
 $("exact").textContent = percent(data.summary.exact_execution);

@@ -3,54 +3,52 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Результаты эксперимента E4 и интерактивный разбор полудуплексных протоколов по раундам.">
+  <meta name="description" content="Прогоны эксперимента E4 и разбор полудуплексных протоколов по раундам.">
   <meta name="theme-color" content="#142d3b">
-  <title>E4 · Исполнение полудуплексных протоколов</title>
+  <title>E4 · Полудуплексные протоколы</title>
   <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="hero">
-    <div class="wrap">
-      <nav class="topbar" aria-label="Навигация">
-        <a class="brand" href="./">E4 <span>Эксперимент</span></a>
-        <div class="nav-links">
-          <a href="#results">Результаты</a>
-          <a href="#method">Методика</a>
-          <a href="https://github.com/EvgeniiZhidkov/communication-experiment4">GitHub</a>
-        </div>
-      </nav>
-      <div class="intro">
-        <h1>Исполнение <em>полудуплексных протоколов</em></h1>
-        <p>Алиса и Боб видят только свои битовые строки и общаются по одному каналу. Эксперимент проверяет, смогут ли языковые модели следовать объяснённому алгоритму и получить верный ответ.</p>
-        <a class="button" href="#results">Открыть результаты</a>
+  <header class="site-header">
+    <nav class="wrap topbar" aria-label="Навигация">
+      <a class="brand" href="#top" aria-label="E4, начало страницы">E4</a>
+      <div class="nav-links">
+        <a href="#results">Прогоны</a>
+        <a href="#method">Метрики</a>
+        <a href="https://github.com/EvgeniiZhidkov/communication-experiment4">GitHub</a>
       </div>
-    </div>
+    </nav>
   </header>
 
-  <main>
-    <section class="wrap results" id="results" aria-labelledby="results-title">
-      <h2 id="results-title">Сохранённые прогоны</h2>
-      <p class="section-note">Codex–Codex, специализированные протоколы для скалярного произведения по модулю 2 и проверки равенства. В просмотре прогона можно сравнить каждый раунд с программным эталоном на тех же входах.</p>
-      <div class="run-grid">
+  <main id="top" class="wrap">
+    <h1>Полудуплексные протоколы</h1>
+    <section id="results" aria-labelledby="results-title">
+      <div class="section-heading">
+        <h2 id="results-title">Прогоны</h2>
+        <div class="run-picker">
+          <label for="run">Выбрать прогон</label>
+          <select id="run" disabled>
+            <!-- RUN_OPTIONS -->
+          </select>
+        </div>
+      </div>
+      <noscript><p><a href="https://github.com/EvgeniiZhidkov/communication-experiment4/tree/main/runs">Все прогоны на GitHub</a></p></noscript>
+      <div id="run-results">
         <!-- RUN_CARDS -->
       </div>
     </section>
 
-    <section class="method" id="method" aria-labelledby="method-title">
-      <div class="wrap method-grid">
-        <div>
-          <h2 id="method-title">Как устроен эксперимент</h2>
-          <p>В каждом раунде оба игрока решают, отправить бит или слушать. Передача срабатывает, когда один отправляет, а другой слушает. При двух отправках биты теряются. В канале <code>silence</code> при взаимном слушании оба получают символ тишины.</p>
-          <div class="method-links">
-            <a href="project.html">Постановка проекта</a>
-            <a href="https://github.com/EvgeniiZhidkov/communication-experiment4/blob/main/reproduction.ipynb">Ноутбук воспроизведения</a>
-          </div>
-        </div>
-        <dl class="definitions">
-          <div><dt>Оба ответа верны</dt><dd>Алиса и Боб независимо выдали правильный итоговый бит.</dd></div>
-          <div><dt>Точное исполнение</dt><dd>Действия и ответы совпали с программным эталоном.</dd></div>
-          <div><dt>Число раундов</dt><dd>Учитываются раунды связи. Итоговые ответы выдаются локально.</dd></div>
-        </dl>
+    <section id="method" aria-labelledby="method-title">
+      <h2 id="method-title">Метрики</h2>
+      <dl class="definitions">
+        <div><dt>Оба ответа верны</dt><dd>Алиса и Боб получили правильный итоговый бит.</dd></div>
+        <div><dt>Точное исполнение</dt><dd>Все ходы и ответы совпали с программным эталоном.</dd></div>
+        <div><dt>Раунды</dt><dd>Считаются раунды связи. Итоговые ответы выдаются локально.</dd></div>
+      </dl>
+      <div class="method-links">
+        <a href="project.html#e4">Постановка эксперимента</a>
+        <a href="https://github.com/EvgeniiZhidkov/communication-experiment4/blob/main/reproduction.ipynb">Ноутбук</a>
       </div>
     </section>
   </main>

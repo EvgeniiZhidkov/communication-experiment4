@@ -357,7 +357,8 @@ def export_protocols(log_path: str | Path, *, output_dir: str | Path | None = No
     template = Path(__file__).with_name("templates") / "protocol_viewer.html"
     results_link = ""
     if results_url:
-        results_link = f'<a class="results-link" href="{escape(results_url)}">← К результатам</a>'
+        results_link = (f'<nav class="results-nav" aria-label="Навигация">'
+                        f'<a class="results-link" href="{escape(results_url)}">← К прогонам</a></nav>')
     html = template.read_text(encoding="utf-8").replace("__RESULTS_LINK__", results_link)
     html_path = directory / "index.html"
     html_path.write_text(html.replace("__PROTOCOL_DATA__", payload), encoding="utf-8")

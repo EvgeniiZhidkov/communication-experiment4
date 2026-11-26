@@ -114,7 +114,7 @@ class VisualizationTests(unittest.TestCase):
 
     def test_old_journals_and_reports_are_supported(self):
         root = Path(__file__).resolve().parents[2]
-        run = root / "runs" / "experiment4_episode_20261109T221631_854494Z"
+        run = root / "runs" / "e4_ip-silence_n5_seed42_20261109T221631_854494Z"
         journal = run / "experiment4_episode_20261109T221631_854494Z.jsonl"
         report = run / "experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
         if not journal.exists():

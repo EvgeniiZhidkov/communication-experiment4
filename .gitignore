@@ -17,8 +17,8 @@ __pycache__/
 !/runs/**/plots.png
 !/runs/**/tool_audit.json
 !/runs/**/source/*.py
-!/runs/experiment4_episode_*/experiment4_episode_*.jsonl
-!/runs/experiment4_episode_*/experiment4_episode_*_plots.png
+!/runs/**/experiment4_episode_*.jsonl
+!/runs/**/experiment4_episode_*_plots.png
 /runs/**/calls/
 /runs/**/sessions/
 /runs/**/protocols/

@@ -39,6 +39,7 @@ class ExperimentTests(unittest.TestCase):
                                           n=3, experiment=mode, repeats=2,
                                           sampling="eq_balanced" if task == "eq" else "uniform")
                         result = self.run_quietly(cfg)
+                        self.assertTrue(result.directory.name.startswith(f"e4_{task}-{channel}_n3_seed42_"))
                         self.assertTrue(result.summary["run_complete"])
                         key = "joint_accuracy" if mode == "episode" else "decision_accuracy"
                         self.assertEqual(result.summary[key]["rate"], 1)
@@ -80,7 +81,7 @@ class ExperimentTests(unittest.TestCase):
 
     def test_legacy_journal_metrics_still_match(self):
         root = Path(__file__).resolve().parents[2]
-        run = root / "runs" / "experiment4_episode_20261109T221631_854494Z"
+        run = root / "runs" / "e4_ip-silence_n5_seed42_20261109T221631_854494Z"
         path = run / "experiment4_episode_20261109T221631_854494Z.jsonl"
         report = run / "experiment4_episode_20261109T221631_854494Z_analysis_20261109T223023_735588Z.jsonl"
         if not path.is_file():

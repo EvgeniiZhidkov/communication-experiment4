@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import threading
@@ -37,11 +38,14 @@ class JsonlWriter:
 
 class RunLog:
     def __init__(self, output_dir: str | Path, *, fsync: bool = True,
-                 explain_deviations: bool = False, record_calculations: bool = False):
+                 explain_deviations: bool = False, record_calculations: bool = False,
+                 label: str = ""):
         root = Path(output_dir).resolve()
         root.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
-        self.directory = root / f"e4_{stamp}_{uuid4().hex[:8]}"
+        label = re.sub(r"[^A-Za-z0-9_-]", "-", label)[:96]
+        prefix = f"e4_{label}" if label else "e4"
+        self.directory = root / f"{prefix}_{stamp}_{uuid4().hex[:8]}"
         self.directory.mkdir(mode=0o700)
         (self.directory / "calls").mkdir()
         self.events = JsonlWriter(self.directory / "events.jsonl", fsync=fsync)

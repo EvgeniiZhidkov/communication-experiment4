@@ -6,7 +6,7 @@ on:
     paths:
       - site/**
       - halfduplex/**
-      - results/**
+      - runs/**
       - 'communication_complexity_final (1).html'
       - requirements-plots.txt
       - .github/workflows/pages.yml
