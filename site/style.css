@@ -22,7 +22,7 @@ a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 3px solid #218474; outline-offset: 3px; }
 h1, h2, h3 { line-height: 1.1; }
 h1, h3 { letter-spacing: -0.035em; }
-h1 { font-size: clamp(2rem, 5.1vw, 4.2rem); font-weight: 650; }
+h1 { font-size: clamp(1.75rem, 3vw, 2.375rem); font-weight: 650; }
 h2 { font-size: 1.25rem; font-weight: 650; }
 h3 { font-size: clamp(1.75rem, 3.6vw, 2.8rem); font-weight: 650; }
 .wrap { width: min(78rem, calc(100% - 3rem)); margin-inline: auto; }
@@ -37,10 +37,10 @@ h3 { font-size: clamp(1.75rem, 3.6vw, 2.8rem); font-weight: 650; }
 .brand-title { font-size: 0.9rem; line-height: 1.2; font-weight: 600; }
 .nav-links { display: flex; flex-shrink: 0; gap: clamp(0.75rem, 3vw, 1.75rem); align-items: center; }
 
-main { padding-block: clamp(2rem, 5vw, 4rem); }
-#results { margin-block: clamp(1.6rem, 4vw, 3.25rem) clamp(2.5rem, 6vw, 5rem); }
+main { padding-block: clamp(1.5rem, 3vw, 2.5rem) clamp(2rem, 5vw, 4rem); }
+#results { margin-block-end: clamp(2.5rem, 6vw, 5rem); }
 .section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1rem; }
-.section-heading h2 { padding-block: 0.65rem; }
+.section-heading h1 { padding-bottom: 0.5rem; }
 .run-picker { display: grid; gap: 0.3rem; width: min(36rem, 100%); }
 .run-picker label { color: var(--muted); font-size: 0.875rem; }
 select {
@@ -92,6 +92,6 @@ select {
 @media (max-width: 32rem) {
   .wrap { width: calc(100% - 2rem); }
   .section-heading { align-items: start; gap: 0.4rem; }
-  .section-heading h2 { padding: 0; }
+  .section-heading h1 { padding: 0; }
   .definitions { grid-template-columns: 1fr; }
 }
